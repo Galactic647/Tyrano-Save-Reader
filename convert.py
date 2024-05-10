@@ -3,7 +3,9 @@ from core import savparser as sp
 from typing import Union
 
 from pathlib import Path
+import configparser
 import argparse
+import json
 import os
 
 
@@ -19,6 +21,9 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path]) -> None:
         elif output_file == 'auto' and input_file.suffix == '.json':
             output_file = f'{input_file.parent}/packed.sav'
         output_file = Path(output_file)
+
+    excs = get_excluded()
+    sp.EXCLUDED.extend(excs)
 
     if input_file.suffix == '.sav':
         parser = sp.SavParser(input_file, output_file, overwrite_source=False)
@@ -44,6 +49,25 @@ def initialize() -> argparse.Namespace:
                            default='auto',
                            help='the output file (default auto)')
     return argparser.parse_args()
+
+
+def get_excluded() -> list:
+    create_config()
+    parser = configparser.ConfigParser()
+    parser.read('convert config.ini')
+    return json.loads(parser.get('Settings', 'excluded'))
+
+
+def create_config() -> None:
+    if os.path.exists('convert config.ini'):
+        return
+    parser = configparser.ConfigParser()
+    parser.add_section('Settings')
+    parser.set('Settings', 'excluded', json.dumps(['*', '+']))
+
+    with open('convert config.ini', 'w') as file:
+        parser.write(file)
+        file.close()
 
 
 if __name__ == '__main__':
