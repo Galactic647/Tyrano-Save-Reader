@@ -24,8 +24,8 @@ Different from monitor function, the convert function has no checks of whether t
 
 ### Example usage
 
-* `python convert.py -i "C:\Game Folder\Game\game_tyrano_data.sav"`
-* `python convert.py -i "C:\Game Folder\Game\parsed.json" -o "Parsed Saves\game_data_repacked.sav"`
+* `convert -i "C:\Game Folder\Game\game_tyrano_data.sav"`
+* `convert -i "C:\Game Folder\Game\parsed.json" -o "Parsed Saves\game_data_repacked.sav"`
 
 -------------------
 
@@ -55,8 +55,8 @@ Note: It's recommended to turn off auto save and only do saves manually in the t
 
 ### Example usage
 
-* `python monitor.py -i "C:\Game Folder\Game\game_tyrano_data.sav" -s -c 10 -b 2`
-* `python monitor.py -i "C:\Game Folder\Game\game_tyrano_data.sav" -o "Session\parsed.json" -s -b 2 -k 10 -l debug`
+* `monitor -i "C:\Game Folder\Game\game_tyrano_data.sav" -s -c 10 -b 2`
+* `monitor -i "C:\Game Folder\Game\game_tyrano_data.sav" -o "Session\parsed.json" -s -b 2 -k 10 -l debug`
 
 -------------------
 
