@@ -1,5 +1,7 @@
 # Tyrano Save Reader  
 
+![release](https://img.shields.io/github/v/release/Galactic647/Tyrano-Save-Reader?label=Release)
+
 Tyrano save file `.sav` data are usually just json stored in an URL encoding or a percent-encoding. For example `@` will be encoded into `%40`.
 
 This tool can convert `.sav` into `.json` and back. This tool also have a monitor function that keep track the changes between the save file and the parsed file, so you can edit the values without touching the save file.
