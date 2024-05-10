@@ -1,5 +1,7 @@
 import hashlib
 
+MIN_BUFFER_DELAY = 0.25
+
 
 def get_hash_sig(file: str) -> str:
     BLOCK = 1048576  # 1MB
