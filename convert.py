@@ -1,4 +1,3 @@
-from numpy import isin
 from core import savparser as sp
 
 from typing import Union
