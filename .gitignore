@@ -2,3 +2,7 @@ __pycache__
 .vscode
 test*
 venv
+build
+dist
+resources
+*.spec
