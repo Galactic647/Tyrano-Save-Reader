@@ -64,6 +64,7 @@ def _recursive_binary_diff_check(a, b, max_diff: Optional[int] = None) -> int:
         return _recursive_binary_diff_check(a, b, diff_idx)
     return diff_idx
 
+
 def difference_check(input_file: Path) -> tuple[int, str, str]:
     output = f'{input_file.parent}/{TEMP_INTREGITY_CHECK_FILENAME}'
     parser = SavParser(input_file, output=output, overwrite_source=False)

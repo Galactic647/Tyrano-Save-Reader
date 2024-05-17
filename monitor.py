@@ -37,20 +37,20 @@ def _get_suffix(rank: int) -> str:
 
 
 def main(input_file: Union[str, Path], output_file: Union[str, Path],
-         cps: int,buffer: float, step_backup: bool, backup_limit: int) -> None:
+         cps: int, buffer: float, step_backup: bool, backup_limit: int) -> None:
     if not os.path.exists(input_file):
         raise FileNotFoundError(f'{input_file} does not exists')
     if min(buffer, MIN_BUFFER_DELAY) < MIN_BUFFER_DELAY:
         logger.critical(f'Unable to start because buffer delay is too low {buffer}s, the minimum is {MIN_BUFFER_DELAY}')
         return
-    
+
     if isinstance(input_file, str):
         input_file = Path(input_file)
     if isinstance(output_file, str):
         if output_file.lower() == 'auto':
             output_file = f'{input_file.parent}/parsed.json'
         output_file = Path(output_file)
-    
+
     excs = get_excluded(input_file.parent)
     sp.EXCLUDED.extend(excs)
 
@@ -58,8 +58,8 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
     valid, true_sig, source_sig = sp.parser_integrity_check(input_file)
     if not valid:
         logger.error('Integrity check failed\n'
-                      f'True source:     {true_sig}\n'
-                      f'Repacked source: {source_sig}')
+                     f'True source:     {true_sig}\n'
+                     f'Repacked source: {source_sig}')
         logger.info('Running difference check...')
 
         start = time.perf_counter()
@@ -78,7 +78,7 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
     logger.info('Parsing valid!\n'
                 f'True source:     {true_sig}\n'
                 f'Repacked Source: {source_sig}')
-    
+
     logger.debug('Creating watcher objects')
     parser = sm.ParserWrapper(input_file, output_file, buffer, step_backup, backup_limit)
     sav_watcher = sm.SavWatcher(parser, buffer)
@@ -106,7 +106,7 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
 
 def initialie() -> argparse.Namespace:
     argparser = argparse.ArgumentParser(prog='monitor',
-                                        description='Monitor your saves',)
+                                        description='Monitor your saves', )
     argparser.add_argument('-i',
                            '--input',
                            type=str,
@@ -119,31 +119,33 @@ def initialie() -> argparse.Namespace:
                            help='parsed save output (default auto)')
     options = argparser.add_argument_group('additional options')
     options.add_argument('-c',
-                           '--cps',
-                           type=int,
-                           default=5,
-                           help='number of checks per second (default 5)')
+                         '--cps',
+                         type=int,
+                         default=5,
+                         help='number of checks per second (default 5)')
     options.add_argument('-b',
-                           '--buffer',
-                           type=float,
-                           default=1.0,
-                           help='number of seconds of save buffer, '
-                           f'increase the value if the program is going on parsing loop between source and json (min {MIN_BUFFER_DELAY} default 1s)')
+                         '--buffer',
+                         type=float,
+                         default=1.0,
+                         help='number of seconds of save buffer, '
+                              'increase the value if the program is going on parsing loop between source and json '
+                              f'(min {MIN_BUFFER_DELAY} default 1s)')
     options.add_argument('-s',
-                           '--step-backup',
-                           action='store_true',
-                           help='create backup every parsing')
+                         '--step-backup',
+                         action='store_true',
+                         help='create backup every parsing')
     options.add_argument('-k',
-                           '--backup-limit',
-                           type=int,
-                           default=5,
-                           help='max number of backups to keep, old backup will be replaced with new ones (min 2 default 5)')
+                         '--backup-limit',
+                         type=int,
+                         default=5,
+                         help='max number of backups to keep, old backup will be replaced with new ones'
+                              '(min 2 default 5)')
     options.add_argument('-l',
-                           '--log-level',
-                           type=str,
-                           default='info',
-                           choices=['debug', 'info', 'warning', 'error', 'critical'],
-                           help='log level (default info)')
+                         '--log-level',
+                         type=str,
+                         default='info',
+                         choices=['debug', 'info', 'warning', 'error', 'critical'],
+                         help='log level (default info)')
     return argparser.parse_args()
 
 
