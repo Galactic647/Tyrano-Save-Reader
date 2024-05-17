@@ -1,5 +1,6 @@
 # Tyrano Save Reader  
 
+![downloads](https://img.shields.io/github/downloads/Galactic647/Tyrano-Save-Reader/total?logo=github&label=Downloads&color=brightgreen)
 ![release](https://img.shields.io/github/v/release/Galactic647/Tyrano-Save-Reader?label=Release)
 
 Tyrano save file `.sav` data are usually just json stored in an URL encoding or a percent-encoding. For example `@` will be encoded into `%40`.
