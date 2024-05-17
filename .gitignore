@@ -4,6 +4,7 @@ test*
 venv
 build
 dist
+out
 resources
 *.spec
 *.ini
