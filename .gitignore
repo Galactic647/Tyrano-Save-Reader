@@ -7,3 +7,4 @@ dist
 resources
 *.spec
 *.ini
+.idea
