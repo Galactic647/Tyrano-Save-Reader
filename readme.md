@@ -19,7 +19,7 @@ Parsed:
 
 ## Convert Usage
 
-```cmd
+```terminal
 usage: convert [-h] -i INPUT [-o OUTPUT]
 ```
 
@@ -42,7 +42,7 @@ Different from monitor function, the convert function has no checks of whether t
 
 ## Monitor Usage
 
-```cmd
+```terminal
 usage: monitor [-h] -i INPUT [-o OUTPUT] [-c CPS] [-b BUFFER] [-s] [-k BACKUP_LIMIT] [-l {debug,info,warning,error,critical}]
 ```
 
@@ -105,3 +105,9 @@ If any of them shows any resemblance (`%40` -> `0x40`) then that means it's just
 ![image](https://github.com/Galactic647/GI-3DMigoto-Tools/assets/44773161/c6e51cd6-bf03-4bbc-9594-d19dd3d4d206)
 
 then you can issue this repo and attach your game save for me to figure out the problem.
+
+## TODO
+
+* Create template feature to enable showing selective variables instead of the entire json file.
+* Create an option to parse each save slot into separate files or not. (Might need to move `parsed.json` into a folder for this, since if a game has a lot of save slots, then each parsing will create that same number of json files).
+* Create option to only target specific save slots. (This will mitigate the problem mentioned above, basically the program will only parse if the changes is inside the save slot(s)).
