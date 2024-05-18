@@ -6,6 +6,7 @@ build
 dist
 out
 resources
+templates
 *.spec
 *.ini
 .idea
