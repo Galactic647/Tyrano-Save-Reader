@@ -97,9 +97,21 @@ def get_value_from_template(data: dict, tmpl_config: dict) -> dict:
     curslot = 1
     curtabslot = 1
 
-    for idx, slots in enumerate(data['data'], start=1):
-        saves[slot_style.format(tab=curtab, slot=curslot, tab_slot=curtabslot)] = _get_val_from_tmpl(slots, variables)
+    if not slots_to_check:
+        slots_to_check = list(range(len(data['data'])))
+
+    for slot in slots_to_check:
+        try:
+            index = int(slot)
+        except ValueError:
+            raise ValueError('slots-to-check cannot be styled if style is not provided')
         
+        if slot_style:
+            key = slot_style.format(tab=curtab, slot=curslot, tab_slot=curtabslot)
+        else:
+            key = str(slot)
+        saves[key] = _get_val_from_tmpl(data['data'][index], variables)
+
         if curtabslot < slots_per_tabs and save_tabs is not None is not slots_per_tabs:
             curtabslot += 1
         else:
@@ -107,3 +119,60 @@ def get_value_from_template(data: dict, tmpl_config: dict) -> dict:
             curtab += 1
         curslot += 1
     return saves
+
+
+def _set_val_from_tmpl(data, value, path: Union[str, list, dict]):
+    if isinstance(path, str):
+        elements = regex.split(r'(\.\w+|\[\d+\])', path)
+        elements = [el for el in elements if el and el != '.']
+        
+        current = data
+        for i, el in enumerate(elements):
+            if el.startswith('[') and el.endswith(']'):
+                index = int(el[1:-1])
+                if i == len(elements) - 1:
+                    current[index] = value
+                else:
+                    current = current[index]
+            else:
+                key = el.lstrip('.')
+                if i == len(elements) - 1:
+                    current[key] = value
+                else:
+                    current = current[key]
+        return data
+    elif isinstance(path, list):
+        for v, p in zip(value, path):
+            data = _set_val_from_tmpl(data, v, p)
+        return data
+    elif isinstance(path, dict):
+        for v, p in zip(value.values(), path.values()):
+            data = _set_val_from_tmpl(data, v, p)
+        return data
+    else:
+        raise TypeError('path must be a string, list, or dict')
+
+def set_value_from_template(data: dict, value: dict, tmpl_config: dict) -> dict:
+    save_tabs = tmpl_config.get('save-tabs', -1)
+    slots_per_tabs = tmpl_config.get('save-slots-per-tab', -1)
+    if slots_per_tabs != -1 == save_tabs:
+        raise ValueError('save-tabs and save-slots-per-tab must be set together')
+    
+    slot_style = tmpl_config.get('parsed-slot-style', str())
+    slots_to_check = tmpl_config.get('slots-to-check', list())
+    variables = tmpl_config.get('variables', dict())
+
+    if slot_style and slots_to_check:
+        for s, d in value.items():
+            for v, p in zip(d.values(), variables.values()):
+                index = _translate_slots_from_style([s], slot_style, save_tabs, slots_per_tabs)[0]
+                data['data'][index] = _set_val_from_tmpl(data['data'][index], v, p)
+        return data
+    for s, d in value.items():
+        for v, p in zip(d.values(), variables.values()):
+            if slot_style:
+                index = _translate_slots_from_style([s], slot_style, save_tabs, slots_per_tabs)[0]
+            else:
+                index = int(s)
+            data['data'][index] = _set_val_from_tmpl(data['data'][index], v, p)
+    return data
