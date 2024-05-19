@@ -249,3 +249,15 @@ class SavParser(object):
         with open(self.source, 'w', encoding='utf-8') as file:
             file.write(data)
             file.close()
+
+    def unpack_first_slot(self) -> None:
+        with open(self.true_source, 'r', encoding='utf-8') as file:
+            data = file.readline()
+            file.close()
+
+        data = unquote(data)
+        data = json.loads(data)
+        with open(self.output, 'wb') as file:
+            d = json.dumps(data['data'][0], indent=4, ensure_ascii=False)
+            file.write(d.encode('utf-8'))
+            file.close()
