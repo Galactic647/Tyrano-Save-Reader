@@ -1,6 +1,7 @@
 import hashlib
 
 MIN_BUFFER_DELAY = 0.25
+MIN_BACKUPS = 2
 
 
 def get_hash_sig(file: str) -> str:

@@ -1,7 +1,6 @@
-from core import save_monitor as sm
-from core import savparser as sp
+from core import save_monitor as sm, savparser as sp
 from core.logger import logger
-from core import MIN_BUFFER_DELAY
+from core import MIN_BUFFER_DELAY, MIN_BACKUPS
 
 from typing import Union
 
@@ -40,9 +39,13 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
          cps: int, buffer: float, step_backup: bool, backup_limit: int) -> None:
     if not os.path.exists(input_file):
         raise FileNotFoundError(f'{input_file} does not exists')
-    if min(buffer, MIN_BUFFER_DELAY) < MIN_BUFFER_DELAY:
+    if buffer < MIN_BUFFER_DELAY:
         logger.critical(f'Unable to start because buffer delay is too low {buffer}s, the minimum is {MIN_BUFFER_DELAY}')
         return
+    if backup_limit < MIN_BACKUPS:
+        logger.critical(f'Unable to start because backup limit is too low {backup_limit}, the minimum is {MIN_BACKUPS}')
+        return
+    
 
     if isinstance(input_file, str):
         input_file = Path(input_file)
