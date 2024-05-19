@@ -108,6 +108,4 @@ then you can issue this repo and attach your game save for me to figure out the 
 
 ## TODO
 
-* Create template feature to enable showing selective variables instead of the entire json file.
-* Create an option to parse each save slot into separate files or not. (Might need to move `parsed.json` into a folder for this, since if a game has a lot of save slots, then each parsing will create that same number of json files).
-* Create option to only target specific save slots. (This will mitigate the problem mentioned above, basically the program will only parse if the changes is inside the save slot(s)).
+* Currently I don't have any idea what feature to add anymore, you can leave some suggestion
