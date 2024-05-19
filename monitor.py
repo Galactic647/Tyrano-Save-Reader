@@ -1,3 +1,4 @@
+from altair import Key
 from core import save_monitor as sm, savparser as sp, tmpl_loader as tl
 from core.logger import logger
 from core import MIN_BUFFER_DELAY, MIN_BACKUPS
@@ -50,6 +51,7 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
     
     try:
         tmpl = tl.load_template(template)
+        logger.info(f'Loaded template for {tmpl["game"]!r}')
     except errors.TemplateNotFoundError as e:
         logger.critical(e.message)
         return
@@ -184,9 +186,17 @@ def create_config(directory: Union[str, Path]) -> None:
 
 
 if __name__ == "__main__":
-    args = initialie()
-    arguments = [f'{s}: {getattr(args, s)!r}' for s in dir(args) if not s.startswith('_')]
+    try:
+        args = initialie()
+        arguments = [f'{s}: {getattr(args, s)!r}' for s in dir(args) if not s.startswith('_')]
 
-    logger.setLevel(getattr(logging, args.log_level.upper()))
-    logger.debug(f'Running with args:\n{{args}}'.format(args='\n'.join(arguments)))
-    main(args.input, args.output, args.cps, args.buffer, args.step_backup, args.backup_limit, args.template)
+        logger.setLevel(getattr(logging, args.log_level.upper()))
+        logger.debug(f'Running with args:\n{{args}}'.format(args='\n'.join(arguments)))
+        main(args.input, args.output, args.cps, args.buffer, args.step_backup, args.backup_limit, args.template)
+    except KeyboardInterrupt:
+        logger.info('Interrupted')
+    except Exception as e:
+        logger.critical(f'Critical error encountered'
+                f'\n{"-" * 20}'
+                f'\n{e}'
+                f'\n{"-" * 20}')
