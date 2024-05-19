@@ -1,6 +1,7 @@
-from core import save_monitor as sm, savparser as sp
+from core import save_monitor as sm, savparser as sp, tmpl_loader as tl
 from core.logger import logger
 from core import MIN_BUFFER_DELAY, MIN_BACKUPS
+from core import errors
 
 from typing import Union
 
@@ -36,9 +37,10 @@ def _get_suffix(rank: int) -> str:
 
 
 def main(input_file: Union[str, Path], output_file: Union[str, Path],
-         cps: int, buffer: float, step_backup: bool, backup_limit: int) -> None:
+         cps: int, buffer: float, step_backup: bool, backup_limit: int, template: Union[str, Path]) -> None:
     if not os.path.exists(input_file):
-        raise FileNotFoundError(f'{input_file} does not exists')
+        logger.critical(f'{input_file} does not exists')
+        return
     if buffer < MIN_BUFFER_DELAY:
         logger.critical(f'Unable to start because buffer delay is too low {buffer}s, the minimum is {MIN_BUFFER_DELAY}')
         return
@@ -46,6 +48,11 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
         logger.critical(f'Unable to start because backup limit is too low {backup_limit}, the minimum is {MIN_BACKUPS}')
         return
     
+    try:
+        tmpl = tl.load_template(template)
+    except errors.TemplateNotFoundError as e:
+        logger.critical(e.message)
+        return
 
     if isinstance(input_file, str):
         input_file = Path(input_file)
@@ -83,7 +90,7 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
                 f'Repacked Source: {source_sig}')
 
     logger.debug('Creating watcher objects')
-    parser = sm.ParserWrapper(input_file, output_file, buffer, step_backup, backup_limit)
+    parser = sm.ParserWrapper(input_file, output_file, buffer, step_backup, backup_limit, tmpl)
     sav_watcher = sm.SavWatcher(parser, buffer)
     json_watcher = sm.JsonWatcher(parser, buffer)
 
@@ -149,6 +156,11 @@ def initialie() -> argparse.Namespace:
                          default='info',
                          choices=['debug', 'info', 'warning', 'error', 'critical'],
                          help='log level (default info)')
+    options.add_argument('-t',
+                         '--template',
+                         type=str,
+                         default=str(),
+                         help='use a template file for specific game to filter and edit important variables from the save data.')
     return argparser.parse_args()
 
 
@@ -177,4 +189,4 @@ if __name__ == "__main__":
 
     logger.setLevel(getattr(logging, args.log_level.upper()))
     logger.debug(f'Running with args:\n{{args}}'.format(args='\n'.join(arguments)))
-    main(args.input, args.output, args.cps, args.buffer, args.step_backup, args.backup_limit)
+    main(args.input, args.output, args.cps, args.buffer, args.step_backup, args.backup_limit, args.template)

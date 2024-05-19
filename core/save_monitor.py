@@ -38,7 +38,7 @@ def backup(input_file: Union[str, Path], backup_limit: int) -> None:
 
 class ParserWrapper(object):
     def __init__(self, file: Union[str, Path], output: Union[str, Path], buffer: float,
-                 step_backup: Optional[bool] = False, backup_limit: Optional[int] = 5) -> None:
+                 step_backup: Optional[bool] = False, backup_limit: Optional[int] = 5, tmpl_config: Optional[dict] = None) -> None:
         if not os.path.exists(file):
             raise FileNotFoundError
         self.file = Path(file)
@@ -48,6 +48,10 @@ class ParserWrapper(object):
         if not backup_limit:
             backup_limit = 5
         self.backup_limit = backup_limit
+
+        self.tmpl_config = tmpl_config
+        if tmpl_config is None:
+            self.tmpl_config = dict()
 
         self.save_event = False
         self.modified_event = False
@@ -66,7 +70,11 @@ class ParserWrapper(object):
     def unpack(self) -> None:
         triggered = time.perf_counter()
         logger.debug('Unpacking source to json')
-        self.parser.unpack()
+        
+        if self.tmpl_config:
+            self.parser.unpack_with_template(self.tmpl_config)
+        else:
+            self.parser.unpack()
         
         delta = triggered - self._triggered_checkpoint
         logger.debug(f'Unpack triggered {delta:.5f}s after last pack event\n'
@@ -85,7 +93,11 @@ class ParserWrapper(object):
         logger.debug('Packing json to source')
         if self.step_backup:
             self.backup()
-        self.parser.pack()
+
+        if self.tmpl_config:
+            self.parser.pack_with_template(self.tmpl_config)
+        else:
+            self.parser.pack()
         
         delta = triggered - self._triggered_checkpoint
         logger.debug(f'Unpack triggered {delta:.5f}s after last pack event\n'
@@ -225,10 +237,10 @@ class FileWatcher(object):
                                          f'\n{"-" * 20}')
                             return
                         logger.error(f'Failed to process {watch.name}, unknown error'
-                                     f'{"-" * 20}'
-                                     f'{e}'
-                                     f'{"-" * 20}'
-                                     f', retrying in 2s ({retries}/5)')
+                                     f'\n{"-" * 20}'
+                                     f'\n{e}'
+                                     f'\n{"-" * 20}'
+                                     f'\nretrying in 2s ({retries}/5)')
                         time.sleep(2)
                         retries += 1
             time.sleep(self.delay)

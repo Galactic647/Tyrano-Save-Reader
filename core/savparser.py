@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from sympy import N
+
+from core import tmpl_loader as tl
 from core import get_hash_sig
 
 from colorama import Fore, Style
@@ -184,6 +187,9 @@ class SavParser(object):
         self.output = pathlib.Path(output)
         self.overwrite_source = overwrite_source
 
+        # Only used if template is provided
+        self._keep_parsed = dict()
+
     @property
     def source(self) -> str:
         if self.overwrite_source:
@@ -210,12 +216,38 @@ class SavParser(object):
 
     def pack(self) -> None:
         with open(self.output, 'rb') as file:
-            data = file.read()
-            data = json.loads(data)
+            data = json.loads(file.read())
             file.close()
         
         data = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
         data = quote(data)
+        with open(self.source, 'w', encoding='utf-8') as file:
+            file.write(data)
+            file.close()
+
+    def unpack_with_template(self, tmpl: dict) -> None:
+        with open(self.true_source, 'r', encoding='utf-8') as file:
+            data = file.readline()
+            file.close()
+
+        data = unquote(data)
+        data = json.loads(data)
+        self._keep_parsed = data
+        data = tl.get_value_from_template(data, tmpl)
+        with open(self.output, 'wb') as file:
+            d = json.dumps(data, indent=4, ensure_ascii=False)
+            file.write(d.encode('utf-8'))
+            file.close()
+
+    def pack_with_template(self, tmpl: dict) -> None:
+        with open(self.output, 'rb') as file:
+            values = json.loads(file.read())
+            file.close()
+        
+        data = tl.set_value_from_template(self._keep_parsed, values, tmpl)
+        data = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
+        data = quote(data)
+
         with open(self.source, 'w', encoding='utf-8') as file:
             file.write(data)
             file.close()
