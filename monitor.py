@@ -1,4 +1,3 @@
-from altair import Key
 from core import save_monitor as sm, savparser as sp, tmpl_loader as tl
 from core.logger import logger
 from core import MIN_BUFFER_DELAY, MIN_BACKUPS

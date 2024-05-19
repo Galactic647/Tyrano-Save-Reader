@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from sympy import N
-
 from core import tmpl_loader as tl
 from core import get_hash_sig
 
