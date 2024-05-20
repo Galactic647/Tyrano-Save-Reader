@@ -110,7 +110,12 @@ def get_value_from_template(data: dict, tmpl_config: dict) -> dict:
     if slot_style and slots_to_check:
         translated_slots = _translate_slots_from_style(slots_to_check, slot_style, save_tabs, slots_per_tabs)
         for idx, fmt in zip(translated_slots, slots_to_check):
-            saves[fmt] = _get_val_from_tmpl(data['data'][idx], variables)
+            try:
+                saves[fmt] = _get_val_from_tmpl(data['data'][idx], variables)
+            except IndexError:
+                continue
+            except KeyError:
+                continue
         return saves
     
     curtab = 1
@@ -186,7 +191,12 @@ def set_value_from_template(data: dict, value: dict, tmpl_config: dict) -> dict:
         for s, d in value.items():
             for v, p in zip(d.values(), variables.values()):
                 index = _translate_slots_from_style([s], slot_style, save_tabs, slots_per_tabs)[0]
-                data['data'][index] = _set_val_from_tmpl(data['data'][index], v, p)
+                try:
+                    data['data'][index] = _set_val_from_tmpl(data['data'][index], v, p)
+                except IndexError:
+                    continue
+                except KeyError:
+                    continue
         return data
     for s, d in value.items():
         for v, p in zip(d.values(), variables.values()):
@@ -194,5 +204,10 @@ def set_value_from_template(data: dict, value: dict, tmpl_config: dict) -> dict:
                 index = _translate_slots_from_style([s], slot_style, save_tabs, slots_per_tabs)[0]
             else:
                 index = int(s)
-            data['data'][index] = _set_val_from_tmpl(data['data'][index], v, p)
+            try:
+                data['data'][index] = _set_val_from_tmpl(data['data'][index], v, p)
+            except IndexError:
+                continue
+            except KeyError:
+                continue
     return data
