@@ -3,12 +3,13 @@ from core.logger import logger
 from core import MIN_BUFFER_DELAY, MIN_BACKUPS
 from core import errors
 
-from typing import Union
+from typing import Union, Optional
 
 from pathlib import Path
 import configparser
 import argparse
 import logging
+import glob
 import json
 import time
 import os
@@ -37,7 +38,8 @@ def _get_suffix(rank: int) -> str:
 
 
 def main(input_file: Union[str, Path], output_file: Union[str, Path],
-         cps: int, buffer: float, step_backup: bool, backup_limit: int, template: Union[str, Path]) -> None:
+         cps: int, buffer: float, step_backup: bool, backup_limit: int,
+         template: Union[str, Path], no_auto_tmpl: Optional[bool] = False) -> None:
     if not os.path.exists(input_file):
         logger.critical(f'{input_file} does not exists')
         return
@@ -47,13 +49,6 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
     if backup_limit < MIN_BACKUPS:
         logger.critical(f'Unable to start because backup limit is too low {backup_limit}, the minimum is {MIN_BACKUPS}')
         return
-    
-    try:
-        tmpl = tl.load_template(template)
-        logger.info(f'Loaded template for {tmpl["game"]!r}')
-    except errors.TemplateNotFoundError as e:
-        logger.critical(e.message)
-        return
 
     if isinstance(input_file, str):
         input_file = Path(input_file)
@@ -61,6 +56,33 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
         if output_file.lower() == 'auto':
             output_file = f'{input_file.parent}/parsed.json'
         output_file = Path(output_file)
+
+    try:
+        game_exec = glob.glob(f'{input_file.parent}/*.exe')
+        if len(game_exec) > 1 and not template:
+            logger.warning('Unable to detect template because multiple executables found')
+            game_exec = None
+        elif not game_exec:
+            game_exec = None
+        else:
+            game_exec = Path(game_exec[0]).name
+        if not no_auto_tmpl:
+            logger.debug(f'Searching template for game executable {game_exec!r}')
+        
+        if template or not no_auto_tmpl:
+            tmpl = tl.load_template(template, not no_auto_tmpl, game_exec)
+            logger.info(f'Loaded template for {tmpl["game"]!r}')
+    except errors.TemplateNotFoundError as e:
+        if not no_auto_tmpl:
+            logger.info(e.message)
+        else:
+            logger.warning(e.message)
+        tmpl = None
+    except ValueError as e:
+        if 'game_exec' in str(e):
+            logger.critical('Unable to find game executable')
+            return
+        raise ValueError(e)
 
     excs = get_excluded(input_file.parent)
     sp.EXCLUDED.extend(excs)
@@ -157,6 +179,10 @@ def initialie() -> argparse.Namespace:
                          default='info',
                          choices=['debug', 'info', 'warning', 'error', 'critical'],
                          help='log level (default info)')
+    options.add_argument('-n',
+                         '--no-auto-template',
+                         action='store_true',
+                         help='disable automatic template detection (disabled automatically if --template is provided)')
     options.add_argument('-t',
                          '--template',
                          type=str,
@@ -191,11 +217,9 @@ if __name__ == "__main__":
 
         logger.setLevel(getattr(logging, args.log_level.upper()))
         logger.debug(f'Running with args:\n{{args}}'.format(args='\n'.join(arguments)))
-        main(args.input, args.output, args.cps, args.buffer, args.step_backup, args.backup_limit, args.template)
+        main(args.input, args.output, args.cps, args.buffer, args.step_backup, args.backup_limit, args.template, args.no_auto_template)
     except KeyboardInterrupt:
         logger.info('Interrupted')
     except Exception as e:
-        logger.critical(f'Critical error encountered'
-                f'\n{"-" * 20}'
-                f'\n{e}'
-                f'\n{"-" * 20}')
+        logger.critical('Critical error encountered, below is the traceback')
+        logger.exception(e)

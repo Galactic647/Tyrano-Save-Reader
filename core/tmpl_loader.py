@@ -1,24 +1,44 @@
 from core.errors import TemplateNotFoundError
 
-from typing import Union
+from typing import Union, Optional
 from pathlib import Path
 import regex
+import glob
 import json
-import os
 
 
-def load_template(template: Union[str, Path]) -> dict:
+def load_template(template: Union[str, Path], auto_load: Optional[bool] = False, game_exec: Optional[str] = None) -> dict:
     if isinstance(template, str):
         if not template.endswith('.json'):
             template = f'{template}.json'
         template = Path(template)
 
+    if auto_load and not game_exec:
+        raise ValueError('game_exec must be set if auto_load is True')
+    elif auto_load and template != '.json':
+        templates = glob.glob('templates/**/*.json', recursive=True)
+        if not templates:
+            raise TemplateNotFoundError('No template found')
+
+        for t in templates:
+            with open(t, 'r') as file:
+                try:
+                    config = json.load(file)
+                except json.decoder.JSONDecodeError:
+                    continue
+                file.close()
+            if config.get('game-executable') == game_exec:
+                return config
+        raise TemplateNotFoundError('No template found')
+
     if not template.exists():
-        if not os.path.exists(f'templates/{template}'):
-            raise TemplateNotFoundError(str(template))
-        template = f'templates/{template}'
+        templates = glob.glob(f'templates/**/{template}', recursive=True)
+        if not templates:
+            raise TemplateNotFoundError(f'Template {template!r} not found')
+        template = templates[0]
     with open(template, 'r') as file:
         config = json.load(file)
+        file.close()
     return config
 
 
