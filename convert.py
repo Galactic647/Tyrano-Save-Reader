@@ -1,4 +1,3 @@
-from click import Option
 from core import savparser as sp
 
 from typing import Union, Optional
