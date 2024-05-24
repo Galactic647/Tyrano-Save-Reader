@@ -57,6 +57,7 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
             output_file = f'{input_file.parent}/parsed.json'
         output_file = Path(output_file)
 
+    tmpl = None
     try:
         game_exec = glob.glob(f'{input_file.parent}/*.exe')
         if len(game_exec) > 1 and not template:
@@ -77,7 +78,6 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
             logger.info(e.message)
         else:
             logger.warning(e.message)
-        tmpl = None
     except ValueError as e:
         if 'game_exec' in str(e):
             logger.critical('Unable to find game executable')

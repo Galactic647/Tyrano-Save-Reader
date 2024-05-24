@@ -49,11 +49,16 @@ def _get_val_from_tmpl(data, path):
 
         current = data
         for el in elements:
-            if el.startswith('[') and el.endswith(']'):
-                index = int(el[1:-1])
-                current = current[index]
-            else:
-                current = current[el.lstrip('.')]
+            try:
+                if el.startswith('[') and el.endswith(']'):
+                    index = int(el[1:-1])
+                    current = current[index]
+                else:
+                    current = current[el.lstrip('.')]
+            except KeyError:
+                return path
+            except IndexError:
+                return path
         return current
     elif isinstance(path, list):
         return [_get_val_from_tmpl(data, p) for p in path]
@@ -110,12 +115,7 @@ def get_value_from_template(data: dict, tmpl_config: dict) -> dict:
     if slot_style and slots_to_check:
         translated_slots = _translate_slots_from_style(slots_to_check, slot_style, save_tabs, slots_per_tabs)
         for idx, fmt in zip(translated_slots, slots_to_check):
-            try:
-                saves[fmt] = _get_val_from_tmpl(data['data'][idx], variables)
-            except IndexError:
-                continue
-            except KeyError:
-                continue
+            saves[fmt] = _get_val_from_tmpl(data['data'][idx], variables)
         return saves
     
     curtab = 1
@@ -191,12 +191,7 @@ def set_value_from_template(data: dict, value: dict, tmpl_config: dict) -> dict:
         for s, d in value.items():
             for v, p in zip(d.values(), variables.values()):
                 index = _translate_slots_from_style([s], slot_style, save_tabs, slots_per_tabs)[0]
-                try:
-                    data['data'][index] = _set_val_from_tmpl(data['data'][index], v, p)
-                except IndexError:
-                    continue
-                except KeyError:
-                    continue
+                data['data'][index] = _set_val_from_tmpl(data['data'][index], v, p)
         return data
     for s, d in value.items():
         for v, p in zip(d.values(), variables.values()):
