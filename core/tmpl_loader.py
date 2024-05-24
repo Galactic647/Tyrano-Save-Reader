@@ -5,6 +5,7 @@ from pathlib import Path
 import regex
 import glob
 import json
+import os
 
 
 def load_template(template: Union[str, Path], auto_load: Optional[bool] = False, game_exec: Optional[str] = None) -> dict:
@@ -12,6 +13,8 @@ def load_template(template: Union[str, Path], auto_load: Optional[bool] = False,
         if not template.endswith('.json'):
             template = f'{template}.json'
         template = Path(template)
+    if not os.path.exists('templates'):
+        os.mkdir('templates')
 
     if auto_load and not game_exec:
         raise ValueError('game_exec must be set if auto_load is True')
