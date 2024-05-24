@@ -10,3 +10,4 @@ templates
 *.spec
 *.ini
 .idea
+*.bat
