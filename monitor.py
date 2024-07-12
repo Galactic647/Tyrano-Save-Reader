@@ -80,6 +80,7 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
             logger.warning(e.message)
     except errors.InvalidTemplateError as e:
         logger.warning(e.message)
+        logger.info('No template loaded')
     except ValueError as e:
         if 'game_exec' in str(e):
             logger.critical('Unable to find game executable')
