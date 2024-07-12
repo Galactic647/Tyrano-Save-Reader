@@ -104,7 +104,7 @@ def _translate_slots_from_style(slots: list, style: str, save_tabs: int, slots_p
             raise ValueError('tab must be less than or equal to save_tabs')
         elif tab_slot > slots_per_tabs:
             raise ValueError('tab_slot must be less than or equal to slot_per_tabs')
-        translated_slots.append(save_tabs * tab + tab_slot - 1)
+        translated_slots.append(slots_per_tabs * (tab - 1) + tab_slot - 1)
     return translated_slots
 
 
