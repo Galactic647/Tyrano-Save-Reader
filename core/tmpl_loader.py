@@ -1,4 +1,4 @@
-from core.errors import TemplateNotFoundError
+from core.errors import TemplateNotFoundError, InvalidTemplateError
 
 from typing import Union, Optional
 from pathlib import Path
@@ -23,15 +23,19 @@ def load_template(template: Union[str, Path], auto_load: Optional[bool] = False,
         if not templates:
             raise TemplateNotFoundError('No template found')
 
+        invalid_tmpl = []
         for t in templates:
             with open(t, 'r') as file:
                 try:
                     config = json.load(file)
                 except json.decoder.JSONDecodeError:
+                    invalid_tmpl.append(t)
                     continue
                 file.close()
             if config.get('game-executable') == game_exec:
                 return config
+        if invalid_tmpl:
+            raise InvalidTemplateError(f'Found {len(invalid_tmpl)} invalid templates: \n * {{inv_tmpl}}'.format(inv_tmpl="\n * ".join(invalid_tmpl)))
         raise TemplateNotFoundError('No template found')
 
     if not template.exists():
@@ -40,7 +44,10 @@ def load_template(template: Union[str, Path], auto_load: Optional[bool] = False,
             raise TemplateNotFoundError(f'Template {template!r} not found')
         template = templates[0]
     with open(template, 'r') as file:
-        config = json.load(file)
+        try:
+            config = json.load(file)
+        except json.decoder.JSONDecodeError:
+            raise InvalidTemplateError(f'Invalid template {template!r}')
         file.close()
     return config
 

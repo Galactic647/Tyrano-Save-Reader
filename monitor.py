@@ -78,6 +78,8 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
             logger.info(e.message)
         else:
             logger.warning(e.message)
+    except errors.InvalidTemplateError as e:
+        logger.warning(e.message)
     except ValueError as e:
         if 'game_exec' in str(e):
             logger.critical('Unable to find game executable')
@@ -91,7 +93,7 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
     valid, true_sig, source_sig = sp.parser_integrity_check(input_file)
     if not valid:
         logger.error('Integrity check failed\n'
-                     f'True source:     {true_sig}\n'
+                     f'Original source: {true_sig}\n'
                      f'Repacked source: {source_sig}')
         logger.info('Running difference check...')
 
@@ -105,11 +107,11 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
 
         logger.info(f'Difference check completed in {end:.3f}s\n'
                     f'Difference located at the {diff_idx:,}{suffix} character\n'
-                    f'True source:     {diff_highlight[0]}\n'
+                    f'Original source: {diff_highlight[0]}\n'
                     f'Repacked source: {diff_highlight[1]}')
         return
     logger.info('Parsing valid!\n'
-                f'True source:     {true_sig}\n'
+                f'Original source: {true_sig}\n'
                 f'Repacked Source: {source_sig}')
 
     logger.debug('Creating watcher objects')
