@@ -11,3 +11,4 @@ templates
 *.ini
 .idea
 *.bat
+*.json
