@@ -3,9 +3,9 @@ from PySide2.QtWidgets import (QMainWindow, QAction, QLabel, QWidget, QVBoxLayou
                                QTreeWidgetItem, QProgressBar, QSizePolicy, QAbstractItemView, QPushButton, QLineEdit,
                                QSpacerItem, QRadioButton, QTabWidget, QGridLayout, QComboBox, QSpinBox, QMenuBar, QMenu)
 
-class TyranoBrowser(QMainWindow):
+class TyranoBrowserUI(QMainWindow):
     def __init__(self, parent=None):
-        super(TyranoBrowser, self).__init__(parent=parent)
+        super(TyranoBrowserUI, self).__init__(parent=parent)
         if self.objectName():
             self.setObjectName('self')
         self.resize(1107, 861)
