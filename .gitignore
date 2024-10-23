@@ -12,4 +12,4 @@ templates
 .idea
 *.bat
 *.json
-ui
+*.ui
