@@ -13,3 +13,4 @@ templates
 *.bat
 *.json
 *.ui
+*-old.*
