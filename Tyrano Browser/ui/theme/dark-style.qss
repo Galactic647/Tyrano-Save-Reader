@@ -221,12 +221,12 @@ QScrollBar::sub-page:horizontal {
     margin-top: 0.5em;
     margin-bottom: 0.3em;
 }
-#ExcludedInfoLabel{
+#ExcludedLabel{
     margin-top: 0.5em;
     margin-bottom: 0.3em;
 }
 #ScanProgressBar{
-    margin-left: 0em;
+    margin-left: 0.5em;
     margin-right: 0.5em;
     margin-top: 0.5em;
     margin-bottom: 0.2em;
