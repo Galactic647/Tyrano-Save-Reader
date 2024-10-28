@@ -73,4 +73,23 @@ class CustomEditTreeWidget(QTreeWidget):
 
         for i in non_editable_columns:
             self.setItemDelegateForColumn(i, NoEditDelegate(self))
+
+class TemplateTreeWidget(QTreeWidget):
+    def __init__(self, parent=None) -> None:
+        super(TemplateTreeWidget, self).__init__(parent=parent)
+
+        self.setItemDelegateForColumn(1, NoEditDelegate(self))
+
+    def dropEvent(self, event):
+        super().dropEvent(event)
+        self.itemChanged.emit(self.currentItem(), 1)
+
+    def takeTopLevelItem(self, index):
+        item = super().takeTopLevelItem(index)
+        self.itemChanged.emit(item, 1)
+        return item
+    
+    def removeChildItem(self, parent, item):
+        parent.removeChild(item)
+        self.itemChanged.emit(item, 1)
     
