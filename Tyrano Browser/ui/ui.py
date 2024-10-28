@@ -1,10 +1,13 @@
-from ui.widget import CustomEditTreeWidget
+from string import Template
+from ui.widget import CustomEditTreeWidget, CustomCheckboxDelegate, TemplateTreeWidget
 
 from PySide2.QtCore import QMetaObject, QRect, QSize, Qt
 from PySide2.QtGui import QFont
 from PySide2.QtWidgets import (QMainWindow, QAction, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget, QLineEdit,
     QTreeWidgetItem, QProgressBar, QSizePolicy, QAbstractItemView, QPushButton, QSpacerItem, QRadioButton, QTabWidget,
     QGridLayout, QComboBox, QSpinBox, QMenuBar, QMenu, QListWidget, QStackedWidget)
+
+import regex
 
 
 class TyranoBrowserUI(QMainWindow):
@@ -30,13 +33,13 @@ class TyranoBrowserUI(QMainWindow):
         self.setMenuBar(self.menubar)
 
         self.actionOpen_file = QAction(self)
-        self.actionSave = QAction(self)
-        self.actionSave_as = QAction(self)
+        self.actionSaveTemplate = QAction(self)
+        self.actionSaveTemplate_as = QAction(self)
         self.actionLoad_Template = QAction(self)
         self.actionAuto_Load_Template = QAction(self)
         self.actionAuto_Load_Template.setCheckable(True)
         self.actionAuto_Load_Template.setChecked(True)
-        self.actionSave_Save_File = QAction(self)
+        self.actionSave = QAction(self)
         self.actionExport_Save_File = QAction(self)
 
         self.menubar.addAction(self.menuFile.menuAction())
@@ -45,11 +48,11 @@ class TyranoBrowserUI(QMainWindow):
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionLoad_Template)
         self.menuFile.addSeparator()
-        self.menuFile.addAction(self.actionSave_Save_File)
+        self.menuFile.addAction(self.actionSave)
         self.menuFile.addAction(self.actionExport_Save_File)
         self.menuFile.addSeparator()
-        self.menuFile.addAction(self.actionSave)
-        self.menuFile.addAction(self.actionSave_as)
+        self.menuFile.addAction(self.actionSaveTemplate)
+        self.menuFile.addAction(self.actionSaveTemplate_as)
         self.menuSettings.addAction(self.actionAuto_Load_Template)
         
         self.BaseVLayoutWidget = QWidget(self.centralwidget)
@@ -68,12 +71,13 @@ class TyranoBrowserUI(QMainWindow):
         # ----- Actions Section -----
         self.ActionsSection = QTabWidget(self.BaseVLayoutWidget)
         self.ActionsSection.setFont(font)
+        self.ActionsSection.currentChanged.connect(self.action_section_on_change)
         
         # ----- Tab Widget - Scan Tab -----
         self.ScanTab = QWidget()
         self.ScanTabVLayoutWidget = QWidget(self.ScanTab)
         self.ScanTabVLayoutWidget.setGeometry(QRect(0, 0, 1101, 361))
-        self.ScanActionBaseContainer = QVBoxLayout(self.ScanTabVLayoutWidget)
+        self.ScanActionBaseContainer = QVBoxLayout(self.ScanTab)
         self.ScanActionBaseContainer.setContentsMargins(0, 0, 0, 0)
 
         self.ScanProgressBar = QProgressBar(self.ScanTabVLayoutWidget)
@@ -95,7 +99,7 @@ class TyranoBrowserUI(QMainWindow):
         self.ClearButton.setFont(font)
         self.ScanButtonContainer.addWidget(self.ClearButton)
 
-        self.ButtonHSpacerRight = QSpacerItem(125, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.ButtonHSpacerRight = QSpacerItem(50, 20, QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.ScanButtonContainer.addItem(self.ButtonHSpacerRight)
 
         self.ScanActionContainer = QVBoxLayout()
@@ -138,7 +142,7 @@ class TyranoBrowserUI(QMainWindow):
 
         self.ResultTab = QTreeWidget(self.ScanTabVLayoutWidget)
     
-        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.ResultTab.sizePolicy().hasHeightForWidth())
@@ -152,11 +156,14 @@ class TyranoBrowserUI(QMainWindow):
         self.ResultTab.setIndentation(0)
         self.ResultTab.setItemsExpandable(False)
         self.ResultTab.setExpandsOnDoubleClick(False)
+        self.ResultTab.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.ResultTab.doubleClicked.connect(self.result_tab_double_click)
+        self.ResultTab.customContextMenuRequested.connect(self.result_tab_context_menu_open)
         
         self.ScanWidgetsContainer = QGridLayout()
         self.ScanWidgetsContainer.addWidget(self.ResultTab, 0, 0, 1, 1)
-        self.ScanWidgetsContainer.setColumnStretch(0, 1)
         self.ScanWidgetsContainer.addLayout(self.ScanActionContainer, 0, 1, 1, 1)
+        self.ScanWidgetsContainer.setColumnStretch(0, 1)
         self.ScanActionBaseContainer.addLayout(self.ScanWidgetsContainer)
 
         self.ActionsSection.addTab(self.ScanTab, '')
@@ -165,14 +172,20 @@ class TyranoBrowserUI(QMainWindow):
         self.TemplateTab = QWidget()
         self.TemplateTabVLayoutWidget = QWidget(self.TemplateTab)
         self.TemplateTabVLayoutWidget.setGeometry(QRect(0, 0, 1101, 361))
-        self.TemplateContainer = QVBoxLayout(self.TemplateTabVLayoutWidget)
+        self.TemplateContainer = QVBoxLayout(self.TemplateTab)
         self.TemplateContainer.setContentsMargins(0, 0, 0, 0)
 
-        # TODO
-        # 1. Make a custom context menu for right clicking (add group, remove group, edit group, etc.)
-        self.TemplateWidget = CustomEditTreeWidget([1], self.TemplateTabVLayoutWidget)
+        self.TemplateWidget = TemplateTreeWidget(self.TemplateTabVLayoutWidget)
         self.TemplateWidget.setSortingEnabled(False)
+        self.TemplateWidget.setDragEnabled(True)
+        self.TemplateWidget.setAcceptDrops(True)
+        self.TemplateWidget.setDropIndicatorShown(True)
+        self.TemplateWidget.setDragDropMode(QAbstractItemView.InternalMove)
+        self.TemplateWidget.setDefaultDropAction(Qt.MoveAction)
+        self.TemplateWidget.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.TemplateWidget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.TemplateWidget.itemChanged.connect(self.refresh_value_list)
+        self.TemplateWidget.customContextMenuRequested.connect(self.template_tab_context_menu_open)
         self.TemplateContainer.addWidget(self.TemplateWidget)
 
         self.ActionsSection.addTab(self.TemplateTab, '')
@@ -181,7 +194,7 @@ class TyranoBrowserUI(QMainWindow):
         self.MetadataTab = QWidget()
         self.MetadataTabHLayoutWidget = QWidget(self.MetadataTab)
         self.MetadataTabHLayoutWidget.setGeometry(QRect(0, 0, 1101, 361))
-        self.HLayoutBaseContainer = QHBoxLayout(self.MetadataTabHLayoutWidget)
+        self.HLayoutBaseContainer = QHBoxLayout(self.MetadataTab)
         self.HLayoutBaseContainer.setContentsMargins(0, 0, 0, 0)
 
         self.MSpacerLeft = QSpacerItem(10, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
@@ -211,9 +224,6 @@ class TyranoBrowserUI(QMainWindow):
         self.MetadataContainer.addWidget(self.SaveTabsLabel, 2, 0, 1, 1)
 
         self.SlotStyleInput = QComboBox(self.MetadataTabHLayoutWidget)
-        # TODO deal with these two items
-        self.SlotStyleInput.addItem('')
-        self.SlotStyleInput.addItem('')
         self.SlotStyleInput.setFont(font)
         self.SlotStyleInput.setEditable(True)
         self.MetadataContainer.addWidget(self.SlotStyleInput, 4, 1, 1, 1)
@@ -258,7 +268,7 @@ class TyranoBrowserUI(QMainWindow):
         self.ConfigTab = QWidget()
         self.ConfigTabLayoutWidget = QWidget(self.ConfigTab)
         self.ConfigTabLayoutWidget.setGeometry(QRect(0, 0, 1101, 361))
-        self.ConfigHBaseContainer = QHBoxLayout(self.ConfigTabLayoutWidget)
+        self.ConfigHBaseContainer = QHBoxLayout(self.ConfigTab)
         self.ConfigHBaseContainer.setContentsMargins(0, 0, 0, 0)
 
         self.ConfigListBaseContainer = QVBoxLayout()
@@ -317,14 +327,15 @@ class TyranoBrowserUI(QMainWindow):
         self.ValueListsSection.setFont(font)
 
         # ----- Tab Widget - Value List Tab -----
-        self.ValueListTab = QWidget()
+        self.ValueListTab = QWidget(self)
         self.ValueListTabVLayoutWidget = QWidget(self.ValueListTab)
         self.ValueListTabVLayoutWidget.setGeometry(QRect(0, 0, 1111, 411))
-        self.ValueListContainer = QVBoxLayout(self.ValueListTabVLayoutWidget)
+        self.ValueListContainer = QVBoxLayout(self.ValueListTab)
         self.ValueListContainer.setContentsMargins(0, 0, 0, 0)
 
         self.ValueListWidget = CustomEditTreeWidget([0], self.ValueListTabVLayoutWidget)
         self.ValueListWidget.setSortingEnabled(False)
+        self.ValueListWidget.setItemDelegateForColumn(0, CustomCheckboxDelegate(20, self.ValueListWidget))
         self.ValueListContainer.addWidget(self.ValueListWidget)
 
         self.ValueListsSection.addTab(self.ValueListTab, '')
@@ -333,7 +344,7 @@ class TyranoBrowserUI(QMainWindow):
         self.RawListTab = QWidget()
         self.RawListActionContainerVLayoutWidget = QWidget(self.RawListTab)
         self.RawListActionContainerVLayoutWidget.setGeometry(QRect(0, 0, 1111, 351))
-        self.RawListActionContainer = QVBoxLayout(self.RawListActionContainerVLayoutWidget)
+        self.RawListActionContainer = QVBoxLayout(self.RawListTab)
         self.RawListActionContainer.setContentsMargins(0, 0, 0, 0)
         
         self.RawListActionContainerWidget = QStackedWidget(self.RawListActionContainerVLayoutWidget)
@@ -342,7 +353,7 @@ class TyranoBrowserUI(QMainWindow):
         self.ManualLoadPage = QWidget()
         self.ManualLoadPageLayoutWidget = QWidget(self.ManualLoadPage)
         self.ManualLoadPageLayoutWidget.setGeometry(QRect(0, 0, 1101, 351))
-        self.ManualLoadContainer = QVBoxLayout(self.ManualLoadPageLayoutWidget)
+        self.ManualLoadContainer = QVBoxLayout(self.ManualLoadPage)
         self.ManualLoadContainer.setContentsMargins(0, 0, 0, 0)
 
         self.LoadProgressBar = QProgressBar(self.ManualLoadPageLayoutWidget)
@@ -377,7 +388,7 @@ class TyranoBrowserUI(QMainWindow):
         self.RawListPage = QWidget()
         self.RawListPageVLayoutWidget = QWidget(self.RawListPage)
         self.RawListPageVLayoutWidget.setGeometry(QRect(0, 0, 1111, 411))
-        self.RawListContainer = QVBoxLayout(self.RawListPageVLayoutWidget)
+        self.RawListContainer = QVBoxLayout(self.RawListPage)
         self.RawListContainer.setContentsMargins(0, 0, 0, 0)
 
         self.UnloadButton = QPushButton(self.RawListPageVLayoutWidget)
@@ -387,6 +398,7 @@ class TyranoBrowserUI(QMainWindow):
 
         self.RawListWidget = CustomEditTreeWidget([0], self.RawListPageVLayoutWidget)
         self.RawListWidget.setExpandsOnDoubleClick(False)
+        self.RawListWidget.setItemDelegateForColumn(0, CustomCheckboxDelegate(20, self.RawListPageVLayoutWidget))
         self.RawListContainer.addWidget(self.RawListWidget)
 
         self.RawListActionContainerWidget.addWidget(self.RawListPage)
@@ -413,12 +425,12 @@ class TyranoBrowserUI(QMainWindow):
         self.menuSettings.setTitle('Settings')
 
         self.actionOpen_file.setText('Open...')
-        self.actionSave.setText('Save Template')
-        self.actionSave_as.setText('Save Template As...')
+        self.actionSaveTemplate.setText('Save Template')
+        self.actionSaveTemplate_as.setText('Save Template As...')
         self.actionLoad_Template.setText('Load Template...')
         self.actionAuto_Load_Template.setText('Auto Load Template')
-        self.actionSave_Save_File.setText('Save Save File')
-        self.actionExport_Save_File.setText('Export Save File...')
+        self.actionSave.setText('Save')
+        self.actionExport_Save_File.setText('Export Save...')
         
         self.InfoLabel.setText('No save loaded (Template - None)')
         
@@ -429,15 +441,13 @@ class TyranoBrowserUI(QMainWindow):
         self.NameRadioButton.setText('Name')
         self.FoundLabel.setText('Found: 0')
 
-        self.GameExecPath.setText('')
         self.GameLabel.setText('Game:')
         self.SaveTabsLabel.setText('Save Tabs:')
-        self.SlotStyleInput.setItemText(0, '{tab}-{tab_slot}')
-        self.SlotStyleInput.setItemText(1, 'Save {slot}')
+        self.SlotStyleInput.addItem('{tab}-{tab_slot}')
+        self.SlotStyleInput.addItem('Save {slot}')
 
         self.GameExecutableLabel.setText('Game Executable:')
         self.LocateGameButton.setText('Locate...')
-        self.GameInput.setText('')
         self.SlotsPerTabLabel.setText('Slots Per Tab:')
         self.SlotStyleLabel.setText('Slot Style:')
         self.ExcludedLabel.setText('Characters to Skip in Conversion')
@@ -449,8 +459,7 @@ class TyranoBrowserUI(QMainWindow):
         self.LoadButton.setText('Load')
         self.UnloadButton.setText('Unload')
 
-        self.ResultTab.setColumnCount(3)
-        self.ResultTab.setHeaderLabels(['Variable', 'Value', 'Path'])
+        self.ResultTab.setHeaderLabels(['Variable', 'Value', 'Slot', 'Path'])
 
         for i in range(self.ResultTab.columnCount()):
             self.ResultTab.header().resizeSection(i, 200)
@@ -480,3 +489,136 @@ class TyranoBrowserUI(QMainWindow):
 
         self.ValueListsSection.setTabText(self.ValueListsSection.indexOf(self.ValueListTab), 'Value List')
         self.ValueListsSection.setTabText(self.ValueListsSection.indexOf(self.RawListTab), 'Raw List')
+
+    def action_section_on_change(self, index):
+        if index != 1:  # Template tab
+            return
+        self.ActionsSection.setTabText(1, 'Template')
+
+    def result_tab_double_click(self, index):
+        item = self.ResultTab.itemFromIndex(index)
+        if item is None:
+            return
+        
+        it = QTreeWidgetItem(self.TemplateWidget, [item.text(0), item.text(3)])
+        it.setFlags(it.flags() & ~Qt.ItemIsDropEnabled | Qt.ItemIsEditable)
+
+        self.ActionsSection.setTabText(1, 'Template*')
+        self.refresh_value_list()
+
+    def result_tab_context_menu_open(self, position):
+        # TODO
+        # needs to check if the item is list based or not (low priority)
+        items = self.ResultTab.selectedItems()
+        if not items:
+            return
+        
+        menu = QMenu()
+        add_to_template = menu.addAction('Add to Template')
+        action = menu.exec_(self.ResultTab.viewport().mapToGlobal(position))
+
+        if action != add_to_template:
+            return
+        for item in items:
+            it = QTreeWidgetItem(self.TemplateWidget, [item.text(0), item.text(3)])
+            it.setFlags(it.flags() & ~Qt.ItemIsDropEnabled | Qt.ItemIsEditable)
+        
+        self.ActionsSection.setTabText(1, 'Template*')
+        self.refresh_value_list()
+
+    def template_tab_context_menu_open(self, position):
+        clicked_item = self.TemplateWidget.itemAt(position)
+
+        if clicked_item is not None:
+            self._template_tab_context_menu_at_item(position)
+        else:
+            self._template_tab_context_menu_at_empty_area(position)
+    
+    def _template_tab_context_menu_at_empty_area(self, position):
+        menu = QMenu()
+
+        add_group = menu.addAction('Add Group')
+
+        action = menu.exec_(self.TemplateWidget.viewport().mapToGlobal(position))
+
+        if action == add_group:
+            item = QTreeWidgetItem(self.TemplateWidget, ['New Group'])
+            item.setFlags(item.flags() | Qt.ItemIsEditable)
+
+    def _template_tab_context_menu_at_item(self, position):
+        menu = QMenu()
+
+        add_group = menu.addAction('Add Group')
+        delete_item = menu.addAction('Delete Item')
+
+        action = menu.exec_(self.TemplateWidget.viewport().mapToGlobal(position))
+
+        if action == add_group:
+            item = QTreeWidgetItem(self.TemplateWidget)
+            item.setFlags(item.flags() | Qt.ItemIsEditable)
+            item.setText(0, 'New Group')
+        elif action == delete_item:
+            selected_items = self.TemplateWidget.selectedItems()
+
+            for item in selected_items:
+                parent = item.parent()
+
+                if parent:
+                    self.TemplateWidget.removeChildItem(parent, item)
+                else:
+                    self.TemplateWidget.takeTopLevelItem(self.TemplateWidget.indexOfTopLevelItem(item))
+
+    def _get_value_from_path(self, data, path):
+        elements = regex.split(r'(\.\w+|\[\d+\])', path)
+        elements = [el for el in elements if el and el != '.']
+
+        current = data
+        for el in elements:
+            try:
+                if el.startswith('[') and el.endswith(']'):
+                    index = int(el[1:-1])
+                    current = current[index]
+                else:
+                    current = current[el.lstrip('.')]
+            except KeyError:
+                return path
+            except IndexError:
+                return path
+        return current
+
+    def _get_tree_data(self, root):
+        data = dict()
+
+        for i in range(root.childCount()):
+            item = root.child(i)
+            if item.childCount():
+                data[item.text(0)] = self._get_tree_data(item)
+            else:
+                data[item.text(0)] = item.text(1)
+        return data
+    
+    def add_item_to_value_list(self, data, name, path, parent):
+        if isinstance(path, dict) or not path:
+            item = QTreeWidgetItem(parent, [name])
+
+            if not path:
+                return
+            for k, v in path.items():
+                self.add_item_to_value_list(data, k, v, item)
+        else:
+            val = self._get_value_from_path(data, path)
+
+            item = QTreeWidgetItem(parent, [name, str(val)])
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsEditable)
+            item.setCheckState(0, Qt.Unchecked)
+
+    def refresh_value_list(self):
+        self.ValueListWidget.clear()
+        root = self.TemplateWidget.invisibleRootItem()
+        template_data = self._get_tree_data(root)
+
+        for idx, slot in enumerate(self.raw_data['data'], start=1):
+            item = QTreeWidgetItem(self.ValueListWidget, [f'Slot {idx}'])
+
+            for name, path in template_data.items():
+                self.add_item_to_value_list(slot, name, path, item)
