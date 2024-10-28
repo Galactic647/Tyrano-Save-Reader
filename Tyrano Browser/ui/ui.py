@@ -1,4 +1,3 @@
-from string import Template
 from ui.widget import CustomEditTreeWidget, CustomCheckboxDelegate, TemplateTreeWidget
 
 from PySide2.QtCore import QMetaObject, QRect, QSize, Qt
