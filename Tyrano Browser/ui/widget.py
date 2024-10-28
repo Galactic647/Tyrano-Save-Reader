@@ -78,8 +78,6 @@ class TemplateTreeWidget(QTreeWidget):
     def __init__(self, parent=None) -> None:
         super(TemplateTreeWidget, self).__init__(parent=parent)
 
-        self.setItemDelegateForColumn(1, NoEditDelegate(self))
-
     def dropEvent(self, event):
         super().dropEvent(event)
         self.itemChanged.emit(self.currentItem(), 1)

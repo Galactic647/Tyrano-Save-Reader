@@ -537,26 +537,25 @@ class TyranoBrowserUI(QMainWindow):
     def _template_tab_context_menu_at_empty_area(self, position):
         menu = QMenu()
 
-        add_group = menu.addAction('Add Group')
+        add_item = menu.addAction('Add Item')
 
         action = menu.exec_(self.TemplateWidget.viewport().mapToGlobal(position))
 
-        if action == add_group:
-            item = QTreeWidgetItem(self.TemplateWidget, ['New Group'])
+        if action == add_item:
+            item = QTreeWidgetItem(self.TemplateWidget, ['New Item'])
             item.setFlags(item.flags() | Qt.ItemIsEditable)
 
     def _template_tab_context_menu_at_item(self, position):
         menu = QMenu()
 
-        add_group = menu.addAction('Add Group')
+        add_item = menu.addAction('Add Item')
         delete_item = menu.addAction('Delete Item')
 
         action = menu.exec_(self.TemplateWidget.viewport().mapToGlobal(position))
 
-        if action == add_group:
-            item = QTreeWidgetItem(self.TemplateWidget)
+        if action == add_item:
+            item = QTreeWidgetItem(self.TemplateWidget, ['New Item'])
             item.setFlags(item.flags() | Qt.ItemIsEditable)
-            item.setText(0, 'New Group')
         elif action == delete_item:
             selected_items = self.TemplateWidget.selectedItems()
 
