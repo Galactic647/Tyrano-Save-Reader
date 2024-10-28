@@ -19,6 +19,6 @@ Parsed:
 
 Check [wiki](https://github.com/Galactic647/Tyrano-Save-Reader/wiki) for the tutorials
 
-## TODO
+## WIP
 
-* Currently I don't have any idea what feature to add anymore, you can leave some suggestion
+* Tyrano Browser (checkout the preview [here](https://github.com/Galactic647/Tyrano-Save-Reader/tree/tryano-browser-app/Tyrano%20Browser))
