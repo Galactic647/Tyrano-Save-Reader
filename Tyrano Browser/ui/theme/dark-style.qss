@@ -234,17 +234,20 @@ QScrollBar::sub-page:horizontal {
     margin-top: 0.5em;
     margin-bottom: 0.3em;
 }
-#ScanProgressBar{
-    margin-left: 0.5em;
-    margin-right: 0.5em;
-    margin-top: 0.5em;
-    margin-bottom: 0.2em;
-}
+#ScanProgressBar,
+#ProcessProgressBar,
 #LoadProgressBar{
     margin-left: 0.5em;
     margin-right: 0.5em;
     margin-top: 0.5em;
     margin-bottom: 0.2em;
+}
+#ScanProgressBar::chunk{
+    background-color: rgb(0, 192, 0);
+}
+#ProcessProgressBar::chunk{
+    /* This is the same progress bar as #ScanProgressBar */
+    background-color: rgb(80, 80, 255);
 }
 #ExcludedCharacterList{
     margin-right: 1em;
