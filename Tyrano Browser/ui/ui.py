@@ -38,6 +38,9 @@ class TyranoBrowserUI(QMainWindow):
         self.actionAuto_Load_Template = QAction(self)
         self.actionAuto_Load_Template.setCheckable(True)
         self.actionAuto_Load_Template.setChecked(True)
+        self.actionAuto_Pick_Slot_To_Show = QAction(self)
+        self.actionAuto_Pick_Slot_To_Show.setCheckable(True)
+        self.actionAuto_Pick_Slot_To_Show.setChecked(True)
         self.actionSave = QAction(self)
         self.actionExport_Save_File = QAction(self)
 
@@ -53,6 +56,7 @@ class TyranoBrowserUI(QMainWindow):
         self.menuFile.addAction(self.actionSaveTemplate)
         self.menuFile.addAction(self.actionSaveTemplate_as)
         self.menuSettings.addAction(self.actionAuto_Load_Template)
+        self.menuSettings.addAction(self.actionAuto_Pick_Slot_To_Show)
         
         self.BaseVLayoutWidget = QWidget(self.centralwidget)
         self.BaseVLayoutWidget.setGeometry(QRect(0, 10, 1111, 831))
@@ -84,22 +88,23 @@ class TyranoBrowserUI(QMainWindow):
         self.ScanProgressBar.setTextVisible(False)
         self.ScanActionBaseContainer.addWidget(self.ScanProgressBar)
 
-        self.ScanButtonContainer = QHBoxLayout()
-        self.ScanButtonContainer.setContentsMargins(5, -1, 5, -1)
+        self.ScanButtonContainer = QGridLayout()
+        self.ScanButtonContainer.setHorizontalSpacing(15)
+        self.ScanButtonContainer.setContentsMargins(5, -1, 8, -1)
 
         self.ScanButton = QPushButton(self.ScanTabVLayoutWidget)
         self.ScanButton.setFont(font)
-        self.ScanButtonContainer.addWidget(self.ScanButton)
-
-        self.ButtonHSpacerMiddle = QSpacerItem(10, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        self.ScanButtonContainer.addItem(self.ButtonHSpacerMiddle)
+        self.ScanButtonContainer.addWidget(self.ScanButton, 0, 0, 1, 1)
 
         self.ClearButton = QPushButton(self.ScanTabVLayoutWidget)
         self.ClearButton.setFont(font)
-        self.ScanButtonContainer.addWidget(self.ClearButton)
+        self.ClearButton.setEnabled(False)
+        self.ScanButtonContainer.addWidget(self.ClearButton, 0, 1, 1, 1)
 
-        self.ButtonHSpacerRight = QSpacerItem(50, 20, QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.ScanButtonContainer.addItem(self.ButtonHSpacerRight)
+        self.UndoButton = QPushButton(self.ScanTabVLayoutWidget)
+        self.UndoButton.setFont(font)
+        self.UndoButton.setEnabled(False)
+        self.ScanButtonContainer.addWidget(self.UndoButton, 0, 2, 1, 1)
 
         self.ScanActionContainer = QVBoxLayout()
         self.ScanActionContainer.addLayout(self.ScanButtonContainer)
@@ -108,8 +113,8 @@ class TyranoBrowserUI(QMainWindow):
         self.ScanInput.setFont(font)
         self.ScanActionContainer.addWidget(self.ScanInput)
 
-        self.ScanActionVSpacerMiddle = QSpacerItem(20, 5, QSizePolicy.Minimum, QSizePolicy.Maximum)
-        self.ScanActionContainer.addItem(self.ScanActionVSpacerMiddle)
+        self.ScanActionVSpacerScan2SB = QSpacerItem(20, 8, QSizePolicy.Minimum, QSizePolicy.Maximum)
+        self.ScanActionContainer.addItem(self.ScanActionVSpacerScan2SB)
 
         self.SearchByContainer = QHBoxLayout()
         self.SearchByContainer.setContentsMargins(10, -1, 5, -1)
@@ -132,8 +137,31 @@ class TyranoBrowserUI(QMainWindow):
 
         self.ScanActionContainer.addLayout(self.SearchByContainer)
 
+        self.ScanActionVSpacerSearchBy2SI = QSpacerItem(20, 8, QSizePolicy.Minimum, QSizePolicy.Maximum)
+        self.ScanActionContainer.addItem(self.ScanActionVSpacerSearchBy2SI)
+
+        self.SearchConstraintContainer = QGridLayout()
+        self.SearchConstraintContainer.setContentsMargins(10, -1, -1, -1)
+        self.SearchLocationInput = QComboBox(self.ScanTabVLayoutWidget)
+        self.SearchLocationInput.setFont(font)
+        self.SearchConstraintContainer.addWidget(self.SearchLocationInput, 0, 1, 1, 1)
+
+        self.SearchInLabel = QLabel(self.ScanTabVLayoutWidget)
+        self.SearchInLabel.setObjectName(u"SearchInLabel")
+        self.SearchInLabel.setFont(font)
+        self.SearchConstraintContainer.addWidget(self.SearchInLabel, 0, 0, 1, 1)
+
+        self.SearchInHSpacer = QSpacerItem(60, 20, QSizePolicy.Maximum, QSizePolicy.Minimum)
+        self.SearchConstraintContainer.addItem(self.SearchInHSpacer, 0, 2, 1, 1)
+
+        self.SearchConstraintContainer.setColumnStretch(1, 1)
+        self.ScanActionContainer.addLayout(self.SearchConstraintContainer)
+
         self.ScanActionVSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.ScanActionContainer.addItem(self.ScanActionVSpacer)
+
+        self.ScanActionWidthControl = QSpacerItem(350, 40, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.ScanActionContainer.addItem(self.ScanActionWidthControl)
 
         self.FoundLabel = QLabel(self.ScanTabVLayoutWidget)
         self.FoundLabel.setFont(font)
@@ -332,6 +360,22 @@ class TyranoBrowserUI(QMainWindow):
         self.ValueListContainer = QVBoxLayout(self.ValueListTab)
         self.ValueListContainer.setContentsMargins(0, 0, 0, 0)
 
+        self.SelectiveShowLayout = QGridLayout()
+        self.SelectiveShowLayout.setContentsMargins(7, 7, -1, -1)
+        self.ShowLabel = QLabel(self.ValueListTabVLayoutWidget)
+        self.ShowLabel.setFont(font)
+        self.SelectiveShowLayout.addWidget(self.ShowLabel, 0, 0, 1, 1)
+
+        self.ShowInput = QComboBox()
+        self.ShowInput.setFont(font)
+        self.SelectiveShowLayout.addWidget(self.ShowInput, 0, 1, 1, 1)
+
+        self.ShowHSpacer = QSpacerItem(850, 20, QSizePolicy.Maximum, QSizePolicy.Minimum)
+        self.SelectiveShowLayout.addItem(self.ShowHSpacer, 0, 2, 1, 1)
+
+        self.SelectiveShowLayout.setColumnStretch(1, 1)
+        self.ValueListContainer.addLayout(self.SelectiveShowLayout)
+
         self.ValueListWidget = CustomEditTreeWidget([0], self.ValueListTabVLayoutWidget)
         self.ValueListWidget.setSortingEnabled(False)
         self.ValueListWidget.setItemDelegateForColumn(0, CustomCheckboxDelegate(20, self.ValueListWidget))
@@ -417,6 +461,8 @@ class TyranoBrowserUI(QMainWindow):
         QMetaObject.connectSlotsByName(self)
         self.retranslate_ui()
 
+        self.set_shortcut()
+
     def retranslate_ui(self):
         self.setWindowTitle('Tyrano Browser')
 
@@ -435,9 +481,13 @@ class TyranoBrowserUI(QMainWindow):
         
         self.ScanButton.setText('Scan')
         self.ClearButton.setText('Clear')
+        self.UndoButton.setText('Undo')
         self.SearchByLabel.setText('Search by')
         self.ValueRadioButton.setText('Value')
         self.NameRadioButton.setText('Name')
+
+        self.SearchInLabel.setText('Search In')
+        self.SearchLocationInput.addItem('All')
         self.FoundLabel.setText('Found: 0')
 
         self.GameLabel.setText('Game:')
@@ -455,27 +505,27 @@ class TyranoBrowserUI(QMainWindow):
         self.EditButton.setText('Edit')
         self.RemoveButton.setText('Remove')
 
+        self.ShowLabel.setText('Show')
+        self.ShowInput.addItem('All')
+
         self.LoadButton.setText('Load')
         self.UnloadButton.setText('Unload')
 
         self.ResultTab.setHeaderLabels(['Variable', 'Value', 'Slot', 'Path'])
 
         for i in range(self.ResultTab.columnCount()):
-            self.ResultTab.header().resizeSection(i, 200)
+            self.ResultTab.header().resizeSection(i, 180)
 
-        self.TemplateWidget.setColumnCount(2)
         self.TemplateWidget.setHeaderLabels(['Description', 'Path'])
 
         for i in range(self.TemplateWidget.columnCount()):
             self.TemplateWidget.header().resizeSection(i, 300)
 
-        self.ValueListWidget.setColumnCount(2)
         self.ValueListWidget.setHeaderLabels(['Description', 'Value'])
 
         for i in range(self.ValueListWidget.columnCount()):
             self.ValueListWidget.header().resizeSection(i, 300)
 
-        self.RawListWidget.setColumnCount(2)
         self.RawListWidget.setHeaderLabels(['Description', 'Value'])
 
         for i in range(self.RawListWidget.columnCount()):
@@ -488,6 +538,9 @@ class TyranoBrowserUI(QMainWindow):
 
         self.ValueListsSection.setTabText(self.ValueListsSection.indexOf(self.ValueListTab), 'Value List')
         self.ValueListsSection.setTabText(self.ValueListsSection.indexOf(self.RawListTab), 'Raw List')
+
+    def set_shortcut(self):
+        self.ScanInput.returnPressed.connect(self.ScanButton.click)
 
     def action_section_on_change(self, index):
         if index != 1:  # Template tab
@@ -616,6 +669,7 @@ class TyranoBrowserUI(QMainWindow):
         template_data = self._get_tree_data(root)
 
         for idx, slot in enumerate(self.raw_data['data'], start=1):
+            # TODO needs to adapt slot name to choosen slot pattern
             item = QTreeWidgetItem(self.ValueListWidget, [f'Slot {idx}'])
 
             for name, path in template_data.items():
