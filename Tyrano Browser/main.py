@@ -1,9 +1,10 @@
+from core.thread import KillableThread
 from ui.ui import TyranoBrowserUI
 
+from PySide2.QtMultimedia import QSound
 from PySide2.QtCore import Qt, QTimer
 from PySide2.QtWidgets import QApplication, QFileDialog, QTreeWidgetItem, QMessageBox
 
-import threading
 import json
 import time
 import sys
@@ -12,6 +13,10 @@ import sys
 class TyranoBrowser(TyranoBrowserUI):
     # TODO
     # 3. Need progress bar when loading a save.
+    
+    # TODO Complex Problem
+    # 1. Need an algorithm to check the difference between loaded data and new data,
+    #    while still keeping in mind of new variables that doesn't exist in the current loaded data.
 
     def __init__(self):
         super().__init__()
@@ -35,6 +40,7 @@ class TyranoBrowser(TyranoBrowserUI):
 
         self.ScanButton.clicked.connect(self.scan_function)
         self.ClearButton.clicked.connect(self.clear_result)
+        self.UndoButton.clicked.connect(self.undo_result)
 
         self.LoadButton.clicked.connect(self.load_raw_list)
         self.UnloadButton.clicked.connect(self.unload_raw_list)
@@ -42,24 +48,34 @@ class TyranoBrowser(TyranoBrowserUI):
         self.scan_progress_bar_check_interval = QTimer()
         self.scan_progress_bar_check_interval.timeout.connect(self.update_progress_bar)
         self.scan_progress_bar_check_interval.start(50)
-        with open('test/flattened.json', 'rb') as file:
-            self.flattened_data = json.loads(file.read())
-            file.close()
+
+        # Scan Cache
+        self.result_cache = None
+        self.prev_result_cache = None
+
+        # SFXs
+        self.warning = QSound("C:/Windows/Media/Windows Foreground.wav")
+        self.scan_complete = QSound("C:/Windows/Media/Windows Background.wav")
 
         # Threads
-        self.load_raw_thread = None
+        self.load_raw_thread: KillableThread
+        self.flattening_thread: KillableThread
+
+    def change_progress_bar_state(self, state):
+        if state.lower() == 'normal':
+            self.ScanProgressBar.setObjectName('ScanProgressBar')
+        elif state.lower() == 'process':
+            self.ScanProgressBar.setObjectName('ProcessProgressBar')
+        self.ScanProgressBar.style().unpolish(self.ScanProgressBar)
+        self.ScanProgressBar.style().polish(self.ScanProgressBar)
 
     def update_progress_bar(self):
         self.ScanProgressBar.setValue(self.scan_progress_bar_value)
         self.LoadProgressBar.setValue(self.load_progress_bar_value)
-
-    def clear_result(self):
-        self.ResultTab.clear()
-        self.FoundLabel.setText('Found: 0')
     
     def unload_raw_list(self):
         self.RawListActionContainerWidget.setCurrentIndex(0)
-        threading.Thread(target=self.RawListWidget.clear, daemon=True).start()
+        KillableThread(target=self.RawListWidget.clear, daemon=True).start()
 
     def load_raw_list(self):
         if self.LoadButton.text() == 'Load':
@@ -69,7 +85,7 @@ class TyranoBrowser(TyranoBrowserUI):
         else:
             self.LoadButton.setEnabled(False)
 
-            self.load_raw_thread.join(0)
+            KillableThread(target=self.load_raw_thread.kill, daemon=True).start()
             self.load_progress_bar_value = 0
             self.LoadProgressBar.setValue(0)
             self.RawListWidget.clear()
@@ -78,7 +94,7 @@ class TyranoBrowser(TyranoBrowserUI):
             self.LoadButton.setEnabled(True)
     
     def display_raw_list(self):
-        self.load_raw_thread = threading.Thread(target=self._create_raw_list_slot, daemon=True)            
+        self.load_raw_thread = KillableThread(target=self._create_raw_list_slot, daemon=True)            
         self.load_raw_thread.start()
         self.LoadButton.setEnabled(True)
 
@@ -114,52 +130,122 @@ class TyranoBrowser(TyranoBrowserUI):
             item = QTreeWidgetItem(parent, [name, str(data)])
 
     def display_result(self, data):
+        pattern = self.SlotStyleInput.currentText()
+        slots_per_tabs = self.SlotsPerTabInput.value()
+        tab = tab_slot = 0
+
         for d in data:
             for path, value in d.items():
                 name = path.split('.')[-1]
                 slot, *pth = path.split('.')
+                slot = int(slot[5:-1])
+
+                if slots_per_tabs:
+                    tab, tab_slot = divmod(slot, slots_per_tabs)
+                    if not tab_slot:
+                        tab -= 1
+                        tab_slot = slots_per_tabs
+
                 QTreeWidgetItem(self.ResultTab, [
                     name,
                     str(value),
-                    f'Slot {slot[5:-1]}',
+                    pattern.format(slot=slot + 1, tab=tab + 1, tab_slot=tab_slot),
                     '.'.join(pth)
                 ])
 
-    def scan_function(self):
-        # TODO needs caching for continuous search
+    def clear_result(self):
         self.ResultTab.clear()
+        self.prev_result_cache = None
+        self.result_cache = None
+
+        self.ClearButton.setEnabled(False)
+        self.UndoButton.setEnabled(False)
+        self.ScanButton.setText('Scan')
+        self.FoundLabel.setText('Found: 0')
+
+    def undo_result(self):
+        if not self.prev_result_cache:
+            return
+        self.ResultTab.clear()
+        self.display_result(list({n: self.flattened_data[n]} for n in self.prev_result_cache))
+        self.UndoButton.setEnabled(False)
+        self.FoundLabel.setText(f'Found: {len(self.prev_result_cache)}')
+
+    def scan_function(self):
+        self.ResultTab.clear()
+
+        if self.ScanButton.text() == 'Cancel':
+            self.flattening_thread.kill()
+            self.ScanProgressBar.setValue(0)
+            self.scan_progress_bar_value = 0
+            self.change_progress_bar_state('normal')
+            self.ScanButton.setText('Scan')
+            return
+
         if not self.ScanInput.text():
             QMessageBox.critical(self, 'Error', 'Please enter a search query')
             return
         if not self.flattened_data:
-            # TODO Need threading for this too (blue progress bar)
-            self.create_flattened_data()
+            self.ScanButton.setText('Cancel')
+            self.change_progress_bar_state('process')
+            self.flattening_thread = KillableThread(target=self.create_flattened_data, daemon=True)
+            self.flattening_thread.start()
+            return
         
+        self.ClearButton.setEnabled(False)
         self.ScanButton.setEnabled(False)
         if self.NameRadioButton.isChecked():
-            threading.Thread(target=self.search_by_name, args=(self.ScanInput.text(),), daemon=True).start()
+            target = self.search_by_name
         else:
-            threading.Thread(target=self.search_by_value, args=(self.ScanInput.text(),), daemon=True).start()
+            target = self.search_by_value
 
-    def search_by_name(self, name):
+        search_slot = self.SearchLocationInput.currentIndex()
+        if self.flattening_thread.is_alive():
+            target(self.ScanInput.text(), search_slot)
+        else:
+            KillableThread(target=target, args=(self.ScanInput.text(), search_slot), daemon=True).start()
+
+    def search_by_name(self, name, search_slot=None):
         start = time.perf_counter()
 
+        data = self.flattened_data
+        if self.result_cache:
+            if search_slot:
+                data = dict()
+
+                for c in self.result_cache:
+                    if int(c.partition(']')[0][5:]) != search_slot - 1:
+                        continue
+                    data[c] = self.flattened_data[c]
+            else:
+                data = {n: self.flattened_data[n] for n in self.result_cache}
+        elif search_slot:
+            data = self.raw_data['data'][search_slot - 1]
+            data = self.flatten(data, prefix=f'slot[{search_slot - 1}].')
+
         found = []
-        self.ScanProgressBar.setMaximum(len(self.flattened_data))
-        for idx, k in enumerate(self.flattened_data, start=1):
-            if name in k.split('.')[-1].split('[')[0]:  # what the fuck is this mate
+        self.ScanProgressBar.setMaximum(len(data))
+        for idx, k in enumerate(data, start=1):
+            if name in k.rpartition('.')[-1].split('[')[0]:  # what the fuck is this mate
                 found.append(k)
             self.scan_progress_bar_value = idx
         self.ScanProgressBar.setValue(0)
         self.scan_progress_bar_value = 0
+
+        if self.result_cache:
+           self.prev_result_cache = self.result_cache 
+           self.UndoButton.setEnabled(True)
+        self.result_cache = found
         end = time.perf_counter()
 
         self.FoundLabel.setText(f'Found: {len(found)} ({end - start:.3f}s)')
-        self.display_result(list({n: self.flattened_data[n]} for n in found))
+        self.display_result(list({n: data[n]} for n in found))
 
         self.ScanButton.setEnabled(True)
+        self.ClearButton.setEnabled(True)
+        self.scan_complete.play()
 
-    def search_by_value(self, value):
+    def search_by_value(self, value, search_slot=None):
         start = time.perf_counter()
         if value.isdigit():
             value = int(value)
@@ -169,25 +255,58 @@ class TyranoBrowser(TyranoBrowserUI):
             except ValueError:
                 pass
 
+        data = self.flattened_data
+        if self.result_cache:
+            if search_slot:
+                data = dict()
+
+                for c in self.result_cache:
+                    if int(c.partition(']')[0][5:]) != search_slot - 1:
+                        continue
+                    data[c] = self.flattened_data[c]
+            else:
+                data = {n: self.flattened_data[n] for n in self.result_cache}
+        elif search_slot:
+            data = self.raw_data['data'][search_slot - 1]
+            data = self.flatten(data, prefix=f'slot[{search_slot - 1}].')
+
         found = []
-        self.ScanProgressBar.setMaximum(len(self.flattened_data))
-        for idx, d in enumerate(self.flattened_data.items(), start=1):
+        self.ScanProgressBar.setMaximum(len(data))
+        for idx, d in enumerate(data.items(), start=1):
             k, v = d
             if value == v:
                 found.append(k)
             self.scan_progress_bar_value = idx
         self.ScanProgressBar.setValue(0)
         self.scan_progress_bar_value = 0
+
+        if self.result_cache:
+           self.prev_result_cache = self.result_cache 
+           self.UndoButton.setEnabled(True)
+        self.result_cache = found
         end = time.perf_counter()
         
         self.FoundLabel.setText(f'Found: {len(found)} ({end - start:.3f}s)')
-        self.display_result(list({n: self.flattened_data[n]} for n in found))
+        self.display_result(list({n: data[n]} for n in found))
 
         self.ScanButton.setEnabled(True)
+        self.ClearButton.setEnabled(True)
+        self.scan_complete.play()
 
     def create_flattened_data(self):
+        self.ScanProgressBar.setMaximum(len(self.raw_data['data']))
+        data = dict()
         for idx, v in enumerate(self.raw_data['data']):
-            self.flattened_data.update(self.flatten(v, prefix=f'slot[{idx}].'))
+            data.update(self.flatten(v, prefix=f'slot[{idx}].'))
+            self.scan_progress_bar_value = idx
+        
+        self.flattened_data = data
+        self.ScanProgressBar.setValue(0)
+        self.scan_progress_bar_value = 0
+        self.change_progress_bar_state('normal')
+        self.ScanButton.setText('Scan')
+
+        self.scan_function()
 
     def flatten(self, d, prefix=None):
         result = dict()
