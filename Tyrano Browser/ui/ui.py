@@ -18,7 +18,7 @@ class TyranoBrowserUI(QMainWindow):
         font.setPointSize(9)
         self.setFont(font)
 
-        with open('ui/theme/dark-style.qss') as file:
+        with open('ui/theme/default-dark/dark.qss') as file:
             self.setStyleSheet(file.read())
 
         self.centralwidget = QWidget(self)
