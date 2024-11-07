@@ -369,6 +369,7 @@ class TyranoBrowserUI(QMainWindow):
         self.ShowInput = QComboBox()
         self.ShowInput.setFont(font)
         self.SelectiveShowLayout.addWidget(self.ShowInput, 0, 1, 1, 1)
+        self.ShowInput.currentIndexChanged.connect(self.refresh_value_list)
 
         self.ShowHSpacer = QSpacerItem(850, 20, QSizePolicy.Maximum, QSizePolicy.Minimum)
         self.SelectiveShowLayout.addItem(self.ShowHSpacer, 0, 2, 1, 1)
@@ -452,12 +453,6 @@ class TyranoBrowserUI(QMainWindow):
 
         self.MainContainer.addWidget(self.ValueListsSection)
 
-        # ----- Set Indexes -----
-        self.ActionsSection.setCurrentIndex(0)
-        self.SlotStyleInput.setCurrentIndex(0)
-        self.ValueListsSection.setCurrentIndex(0)
-        self.RawListActionContainerWidget.setCurrentIndex(0)
-
         QMetaObject.connectSlotsByName(self)
         self.retranslate_ui()
 
@@ -493,7 +488,8 @@ class TyranoBrowserUI(QMainWindow):
         self.GameLabel.setText('Game:')
         self.SaveTabsLabel.setText('Save Tabs:')
         self.SlotStyleInput.addItem('{tab}-{tab_slot}')
-        self.SlotStyleInput.addItem('Save {slot}')
+        self.SlotStyleInput.addItem('Slot {slot}')
+        self.SlotStyleInput.setCurrentIndex(1)
 
         self.GameExecutableLabel.setText('Game Executable:')
         self.LocateGameButton.setText('Locate...')
@@ -668,9 +664,16 @@ class TyranoBrowserUI(QMainWindow):
         root = self.TemplateWidget.invisibleRootItem()
         template_data = self._get_tree_data(root)
 
-        for idx, slot in enumerate(self.raw_data['data'], start=1):
-            # TODO needs to adapt slot name to choosen slot pattern
-            item = QTreeWidgetItem(self.ValueListWidget, [f'Slot {idx}'])
+        show_slot = self.ShowInput.currentIndex()
+
+        if not show_slot:
+            for idx, slot in enumerate(self.raw_data['data'], start=1):
+                item = QTreeWidgetItem(self.ValueListWidget, [f'Slot {idx}'])
+
+                for name, path in template_data.items():
+                    self.add_item_to_value_list(slot, name, path, item)
+        else:
+            slot_data = self.raw_data['data'][show_slot - 1]
 
             for name, path in template_data.items():
-                self.add_item_to_value_list(slot, name, path, item)
+                self.add_item_to_value_list(slot_data, name, path, self.ValueListWidget)
