@@ -8,6 +8,9 @@ from PySide2.QtWidgets import QApplication, QFileDialog, QTreeWidgetItem, QMessa
 import json
 import time
 import sys
+import os
+
+TEMPLATE_LOCATION = 'template/tyrano-browser'
 
 
 class TyranoBrowser(TyranoBrowserUI):
@@ -337,7 +340,42 @@ class TyranoBrowser(TyranoBrowserUI):
         self.save_file_path = sav_loc
 
     def load_template_file(self):
-        template_loc = QFileDialog.getOpenFileName(self, 'Load Template', filter='JSON Files (*.json)')[0]
+        self.TemplateWidget.clear()
+        template_loc = QFileDialog.getOpenFileName(
+            self,
+            'Load Template',
+            TEMPLATE_LOCATION,
+            filter='JSON Files (*.json)'
+        )[0]
+        
+        with open(template_loc, 'rb') as file:
+            template_data = json.loads(file.read())
+            file.close()
+        
+        self.GameInput.setText(template_data['game'])
+        self.GameExecPath.setText(template_data['game-executable'])
+        self.SaveTabsInput.setValue(template_data['save-tabs'])
+        self.SlotsPerTabInput.setValue(template_data['save-slots-per-tab'])
+        self.SlotStyleInput.setCurrentText(template_data['slot-style'])
+
+        show_index = template_data['show-slot-index']
+        if (show_index == -1) or (show_index + 1 > self.ShowInput.count() - 1):
+            self.ShowInput.setCurrentIndex(0)
+        else:
+            self.ShowInput.setCurrentIndex(show_index + 1)
+        
+        for name, path in template_data['variables'].items():
+            self._add_to_template(name, path, self.TemplateWidget)
+
+    def _add_to_template(self, name, path, parent):
+        if isinstance(path, dict):
+            item = QTreeWidgetItem(parent, [name])
+            item.setFlags(item.flags() | Qt.ItemIsEditable)
+            for d, v in path.items():
+                self._add_to_template(d, v, item)
+        else:
+            item = QTreeWidgetItem(parent, [name, path])
+            item.setFlags(item.flags() & ~Qt.ItemIsDropEnabled | Qt.ItemIsEditable)
 
     def save_file(self):
         pass
@@ -351,8 +389,32 @@ class TyranoBrowser(TyranoBrowserUI):
         self.GameExecPath.setText(game_exec)
 
     def save_template(self):
-        save_loc = QFileDialog.getSaveFileName(self, 'Save Template', filter='JSON Files (*.json)')[0]
-        print(save_loc)
+        os.makedirs(TEMPLATE_LOCATION, exist_ok=True)
+        game_name = self.GameInput.text()
+        save_dir = TEMPLATE_LOCATION
+        if game_name:
+            save_dir = f'{TEMPLATE_LOCATION}/{game_name}.json'
+        save_loc = QFileDialog.getSaveFileName(
+            self,
+            'Save Template',
+            save_dir,
+            filter='JSON Files (*.json)'
+        )[0]
+
+        save_data = {
+            'game': game_name,
+            'game-executable': self.GameExecPath.text(),
+            'save-tabs': self.SaveTabsInput.value(),
+            'save-slots-per-tab': self.SlotsPerTabInput.value(),
+            'slot-style': self.SlotStyleInput.currentText(),
+            'show-slot-index': self.ShowInput.currentIndex() - 1,
+            'variables': self._get_tree_data(self.TemplateWidget.invisibleRootItem())
+        }
+
+        with open(save_loc, 'wb') as file:
+            data = json.dumps(save_data, indent=4, ensure_ascii=False)
+            file.write(data.encode('utf-8'))
+            file.close()
 
     def save_template_as(self):
         save_loc = QFileDialog.getSaveFileName(self, 'Save Template As', filter='All Files (*.*)')
