@@ -83,7 +83,11 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
         logger.info('No template loaded')
     except ValueError as e:
         if 'game_exec' in str(e):
-            logger.critical('Unable to find game executable')
+            logger.critical(
+                'Unable to find game executable, '
+                'if this message appears when the game doesn\'t have an executable or it\'s intentional, '
+                'please use the --no-auto-template or -n flag'
+            )
             return
         raise ValueError(e)
 
