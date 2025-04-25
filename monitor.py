@@ -23,6 +23,13 @@ on a text editor to edit the values, changes will be updated to source automatic
 DO NOT USE AUTO SAVE ON THE TEXT EDITOR.
 """
 
+DEFAULT_CONFIG = {
+    'Settings': {
+        'excluded': ['*', '+'],
+        'included': ['~']
+    }    
+}
+
 
 def _get_suffix(rank: int) -> str:
     if rank % 100 in [11, 12, 13]:
@@ -91,8 +98,8 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
             return
         raise ValueError(e)
 
-    excs = get_excluded(input_file.parent)
-    sp.EXCLUDED.extend(excs)
+    sp.EXCLUDED.extend(get_excluded(input_file.parent))
+    sp.INCLUDED.extend(get_included(input_file.parent))
 
     logger.info('Checking integrity...')
     valid, true_sig, source_sig = sp.parser_integrity_check(input_file)
@@ -205,13 +212,27 @@ def get_excluded(directory: Union[str, Path]) -> list:
     return json.loads(parser.get('Settings', 'excluded'))
 
 
-def create_config(directory: Union[str, Path]) -> None:
-    if os.path.exists(f'{directory}/monitor config.ini'):
-        return
+def get_included(directory: Union[str, Path]) -> list:
+    create_config(directory)
     parser = configparser.ConfigParser()
-    parser.add_section('Settings')
-    parser.set('Settings', 'excluded', json.dumps(['*', '+']))
+    parser.read(f'{directory}/monitor config.ini')
+    return json.loads(parser.get('Settings', 'included'))
 
+
+def create_config(directory: Union[str, Path]) -> None:
+    parser = configparser.ConfigParser()
+
+    if os.path.exists(f'{directory}/monitor config.ini'):
+        parser.read(f'{directory}/monitor config.ini')
+    
+    for section, data in DEFAULT_CONFIG.items():
+        if section not in parser.sections():
+            parser.add_section(section)
+        
+        for option, value in data.items():
+            if not parser.has_option(section, option):
+                parser.set(section, option, json.dumps(value))
+    
     with open(f'{directory}/monitor config.ini', 'w') as file:
         parser.write(file)
         file.close()

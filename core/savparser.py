@@ -18,7 +18,8 @@ import os
 # which had appear to not cause any issues, there're no cases where it uses more than 6 bytes yet.
 RE_NON_ASCII = regex.compile(r'%u[0-9A-F]{4,6}')
 RE_NON_ASCII_CAP = regex.compile(r'[^\x00-\x7F]')
-EXCLUDED = list('')
+EXCLUDED = list()
+INCLUDED = list()
 TEMP_INTREGITY_CHECK_FILENAME = 'temp_integrity_check.json'
 
 
@@ -160,7 +161,7 @@ def unquote(text: str) -> str:
         if filtered:
             pattern = regex.compile('|'.join(regex.escape(k) for k in filtered))
             text = pattern.sub(lambda m: filtered[m.group(0)], text)
-    return parse.unquote(text)
+    return parse.unquote(text, encoding='latin-1')
 
 
 def quote(text: str) -> str:
@@ -169,11 +170,25 @@ def quote(text: str) -> str:
 
     excluded = dict((parse.quote(k), k) for k in EXCLUDED)
     if search:
-        search = dict((parse.quote(k), f'%u{ord(k):0X}') for k in set(search) if parse.quote(k) not in excluded)
-        excluded.update(search)
+        parsed = dict()
+        for k in set(search):
+            p = parse.quote(k) 
+
+            if p in excluded:
+                continue
+
+            if ord(k) > 0xFF:
+                parsed[p] = f'%u{ord(k):04X}'
+            else:
+                parsed[parse.quote(k)] = parse.quote(k, encoding='latin-1')
+        excluded.update(parsed)
     if excluded:
         pattern = regex.compile('|'.join(regex.escape(k) for k in excluded))
         text = pattern.sub(lambda m: excluded[m.group(0)], text)
+    if INCLUDED:
+        included = dict((i, f'%{ord(i):02X}') for i in INCLUDED)
+        pattern = regex.compile('|'.join(regex.escape(k) for k in included))
+        text = pattern.sub(lambda m: included[m.group(0)], text)
     return text
 
 
