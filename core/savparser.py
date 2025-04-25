@@ -14,6 +14,8 @@ import regex
 import json
 import os
 
+# It technically can range from 4 to 8 hex bytes, but until I see a case where it's longer, I'll limit it to 6
+# which had appear to not cause any issues, there're no cases where it uses more than 6 bytes yet.
 RE_NON_ASCII = regex.compile(r'%u[0-9A-F]{4,6}')
 RE_NON_ASCII_CAP = regex.compile(r'[^\x00-\x7F]')
 EXCLUDED = list('')
@@ -150,13 +152,14 @@ def unquote(text: str) -> str:
         for s in search:
             trimmed = s[2:]
             unc = int(trimmed, 16)
-            if unc > 1114111:  # Max unicode character
+            if unc > 0x10FFFF:  # Max unicode character
                 trimmed = trimmed[:-1]
                 unc = int(trimmed, 16)
             filtered.append((trimmed, chr(unc)))
         filtered = dict((f'%u{f[0]}', f[1]) for f in filtered)
-        for k, v in filtered.items():
-            text = text.replace(k, v)
+        if filtered:
+            pattern = regex.compile('|'.join(regex.escape(k) for k in filtered))
+            text = pattern.sub(lambda m: filtered[m.group(0)], text)
     return parse.unquote(text)
 
 
@@ -166,10 +169,11 @@ def quote(text: str) -> str:
 
     excluded = dict((parse.quote(k), k) for k in EXCLUDED)
     if search:
-        search = dict((parse.quote(k), f'%u{ord(k):0X}') for k in set(search))
+        search = dict((parse.quote(k), f'%u{ord(k):0X}') for k in set(search) if parse.quote(k) not in excluded)
         excluded.update(search)
-    for k, v in excluded.items():
-        text = text.replace(k, v)
+    if excluded:
+        pattern = regex.compile('|'.join(regex.escape(k) for k in excluded))
+        text = pattern.sub(lambda m: excluded[m.group(0)], text)
     return text
 
 
