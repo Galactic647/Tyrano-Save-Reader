@@ -8,6 +8,13 @@ import argparse
 import json
 import os
 
+DEFAULT_CONFIG = {
+    'Settings': {
+        'excluded': ['*', '+'],
+        'included': ['~']
+    }    
+}
+
 
 def main(input_file: Union[str, Path], output_file: Union[str, Path], first: Optional[bool] = False) -> None:
     if not os.path.exists(input_file):
@@ -24,8 +31,8 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path], first: Opt
     if first and input_file.suffix == '.json':
         raise ValueError('Cannot use --first with .json file')
 
-    excs = get_excluded()
-    sp.EXCLUDED.extend(excs)
+    sp.EXCLUDED.extend(get_excluded())
+    sp.INCLUDED.extend(get_included())
 
     if input_file.suffix == '.sav':
         parser = sp.SavParser(input_file, output_file, overwrite_source=False)
@@ -69,13 +76,27 @@ def get_excluded() -> list:
     return json.loads(parser.get('Settings', 'excluded'))
 
 
-def create_config() -> None:
-    if os.path.exists('convert config.ini'):
-        return
+def get_included() -> list:
+    create_config()
     parser = configparser.ConfigParser()
-    parser.add_section('Settings')
-    parser.set('Settings', 'excluded', json.dumps(['*', '+']))
+    parser.read('convert config.ini')
+    return json.loads(parser.get('Settings', 'included'))
 
+
+def create_config() -> None:
+    parser = configparser.ConfigParser()
+
+    if os.path.exists('convert config.ini'):
+        parser.read('convert config.ini')
+    
+    for section, data in DEFAULT_CONFIG.items():
+        if section not in parser.sections():
+            parser.add_section(section)
+        
+        for option, value in data.items():
+            if not parser.has_option(section, option):
+                parser.set(section, option, json.dumps(value))
+    
     with open('convert config.ini', 'w') as file:
         parser.write(file)
         file.close()
