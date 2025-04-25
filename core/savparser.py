@@ -14,8 +14,6 @@ import regex
 import json
 import os
 
-# It technically can range from 4 to 8 hex bytes, but until I see a case where it's longer, I'll limit it to 6
-# which had appear to not cause any issues, there're no cases where it uses more than 6 bytes yet.
 RE_NON_ASCII = regex.compile(r'%u[0-9A-F]{4,6}')
 RE_NON_ASCII_CAP = regex.compile(r'[^\x00-\x7F]')
 EXCLUDED = list()
