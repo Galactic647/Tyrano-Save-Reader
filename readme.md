@@ -19,6 +19,8 @@ Parsed:
 
 Check [wiki](https://github.com/Galactic647/Tyrano-Save-Reader/wiki) for the tutorials
 
-## WIP
+## About Tyrano Browser
 
-* Tyrano Browser (checkout the preview [here](https://github.com/Galactic647/Tyrano-Save-Reader/tree/tryano-browser-app/Tyrano%20Browser))
+Tyrano browser has shift it's architecture from save editing to live editing, basically it now functions similarly as cheat engine. Once a release is out, this section would be deleted.
+
+You can check Tyrano Browser [here](https://github.com/Galactic647/Tyrano-Browser/tree/dev-websocket-hook).
