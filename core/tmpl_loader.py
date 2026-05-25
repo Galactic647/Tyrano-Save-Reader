@@ -95,8 +95,8 @@ def _translate_slots_from_style(slots: list, style: str, save_tabs: int, slots_p
         slot = int(result.get('slot', -1))
         tab_slot = int(result.get('tab_slot', -1))
 
-        if slot > 0:
-            translated_slots.append(slot - 1)
+        if slot > -1:
+            translated_slots.append(slot)
             continue
         if (tab_slot != -1 == tab) or (tab != -1 == tab_slot):
             raise ValueError('tab_slot must be used with tab and vice versa')
