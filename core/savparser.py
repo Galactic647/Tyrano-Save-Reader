@@ -6,6 +6,7 @@ from core import get_hash_sig
 from colorama import Fore, Style
 
 from typing import Optional, Union
+from datetime import datetime
 from pathlib import Path
 from urllib import parse
 import pathlib
@@ -192,7 +193,7 @@ def quote(text: str) -> str:
 
 class SavParser(object):
     def __init__(self, source: Union[str, Path], output: Optional[Union[str, Path]] = 'auto',
-                 overwrite_source: Optional[bool] = False) -> None:
+                 overwrite_source: Optional[bool] = False, recent: Optional[bool] = False) -> None:
         if not os.path.exists(source):
             raise FileNotFoundError(f'File {source} does not exists')
         self._source = pathlib.Path(source)
@@ -201,6 +202,9 @@ class SavParser(object):
             output = f'{self._source.parent}/parsed.json'
         self.output = pathlib.Path(output)
         self.overwrite_source = overwrite_source
+        self.recent = recent
+        self._recent_overriden = False  # True if template is overriden by the 'recent' flag
+        self._recent_index = None
 
         # Only used if template is provided
         self._keep_parsed = dict()
@@ -217,6 +221,14 @@ class SavParser(object):
     def true_source(self) -> str:
         return str(self._source)
 
+    @staticmethod
+    def _get_most_recent(data) -> int:
+        points = {
+            datetime.strptime(d['save_date'], r'%Y/%m/%d %H:%M:%S').timestamp(): idx
+            for idx, d in enumerate(data['data'])
+        }
+        return sorted(points.items(), key=lambda x: x[0], reverse=True)[0][1]
+
     def unpack(self) -> None:
         with open(self.true_source, 'r', encoding='utf-8') as file:
             data = file.readline()
@@ -224,6 +236,13 @@ class SavParser(object):
 
         data = unquote(data)
         data = json.loads(data)
+
+        if self.recent:
+            self._keep_parsed = data
+            idx = self._get_most_recent(data)
+            data = data['data'][idx]
+            self._recent_index = idx
+
         with open(self.output, 'wb') as file:
             d = json.dumps(data, indent=4, ensure_ascii=False)
             file.write(d.encode('utf-8'))
@@ -233,6 +252,11 @@ class SavParser(object):
         with open(self.output, 'rb') as file:
             data = json.loads(file.read())
             file.close()
+
+        if self.recent:
+            rep = self._keep_parsed
+            rep['data'][self._recent_index] = data
+            data = rep
         
         data = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
         data = quote(data)
@@ -248,6 +272,12 @@ class SavParser(object):
         data = unquote(data)
         data = json.loads(data)
         self._keep_parsed = data
+
+        if self.recent and not tmpl['slots-to-check'] or self._recent_overriden:
+            tmpl['parsed-slot-style'] = '{slot}'
+            tmpl['slots-to-check'] = [str(self._get_most_recent(data))]
+            self._recent_overriden = True
+
         data = tl.get_value_from_template(data, tmpl)
         with open(self.output, 'wb') as file:
             d = json.dumps(data, indent=4, ensure_ascii=False)
@@ -258,6 +288,11 @@ class SavParser(object):
         with open(self.output, 'rb') as file:
             values = json.loads(file.read())
             file.close()
+
+        if self.recent and not tmpl['slots-to-check'] or self._recent_overriden:
+            tmpl['parsed-slot-style'] = '{slot}'
+            tmpl['slots-to-check'] = [str(self._get_most_recent(self._keep_parsed))]
+            self._recent_overriden = True
         
         data = tl.set_value_from_template(self._keep_parsed, values, tmpl)
         data = json.dumps(data, separators=(',', ':'), ensure_ascii=False)

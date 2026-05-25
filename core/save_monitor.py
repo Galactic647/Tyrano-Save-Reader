@@ -38,12 +38,13 @@ def backup(input_file: Union[str, Path], backup_limit: int) -> None:
 
 class ParserWrapper(object):
     def __init__(self, file: Union[str, Path], output: Union[str, Path], buffer: float,
-                 step_backup: Optional[bool] = False, backup_limit: Optional[int] = 5, tmpl_config: Optional[dict] = None) -> None:
+                 step_backup: Optional[bool] = False, backup_limit: Optional[int] = 5, tmpl_config: Optional[dict] = None,
+                 recent: Optional[bool] = True) -> None:
         if not os.path.exists(file):
             raise FileNotFoundError
         self.file = Path(file)
         logger.debug('Creating sav parser')
-        self.parser = SavParser(file, output, overwrite_source=True)
+        self.parser = SavParser(file, output, overwrite_source=True, recent=recent)
         self.step_backup = step_backup
         if not backup_limit:
             backup_limit = 5

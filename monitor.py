@@ -46,7 +46,8 @@ def _get_suffix(rank: int) -> str:
 
 def main(input_file: Union[str, Path], output_file: Union[str, Path],
          cps: int, buffer: float, step_backup: bool, backup_limit: int,
-         template: Union[str, Path], no_auto_tmpl: Optional[bool] = False) -> None:
+         template: Union[str, Path], no_auto_tmpl: Optional[bool] = False,
+         recent: Optional[bool] = False) -> None:
     if not os.path.exists(input_file):
         logger.critical(f'{input_file} does not exists')
         return
@@ -127,7 +128,7 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
                 f'Repacked Source: {source_sig}')
 
     logger.debug('Creating watcher objects')
-    parser = sm.ParserWrapper(input_file, output_file, buffer, step_backup, backup_limit, tmpl)
+    parser = sm.ParserWrapper(input_file, output_file, buffer, step_backup, backup_limit, tmpl, recent)
     sav_watcher = sm.SavWatcher(parser, buffer)
     json_watcher = sm.JsonWatcher(parser, buffer)
 
@@ -202,6 +203,10 @@ def initialie() -> argparse.Namespace:
                          type=str,
                          default=str(),
                          help='use a template file for specific game to filter and edit important variables from the save data.')
+    options.add_argument('-r',
+                        '--recent',
+                        action='store_true',
+                        help='only parse the most recent save slot')
     return argparser.parse_args()
 
 
@@ -245,7 +250,7 @@ if __name__ == "__main__":
 
         logger.setLevel(getattr(logging, args.log_level.upper()))
         logger.debug(f'Running with args:\n{{args}}'.format(args='\n'.join(arguments)))
-        main(args.input, args.output, args.cps, args.buffer, args.step_backup, args.backup_limit, args.template, args.no_auto_template)
+        main(args.input, args.output, args.cps, args.buffer, args.step_backup, args.backup_limit, args.template, args.no_auto_template, args.recent)
     except KeyboardInterrupt:
         logger.info('Interrupted')
     except Exception as e:
