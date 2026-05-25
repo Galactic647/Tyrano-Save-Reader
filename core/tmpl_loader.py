@@ -198,11 +198,13 @@ def set_value_from_template(data: dict, value: dict, tmpl_config: dict) -> dict:
     variables = tmpl_config.get('variables', dict())
 
     if slot_style and slots_to_check:
-        for s, d in value.items():
-            for v, p in zip(d.values(), variables.values()):
-                index = _translate_slots_from_style([s], slot_style, save_tabs, slots_per_tabs)[0]
-                data['data'][index] = _set_val_from_tmpl(data['data'][index], v, p)
+        for s in slots_to_check:
+            idx = _translate_slots_from_style([s], slot_style, save_tabs, slots_per_tabs)[0]
+            for d in value.values():
+                for v, p in zip(d.values(), variables.values()):
+                    data['data'][idx] = _set_val_from_tmpl(data['data'][idx], v, p)
         return data
+
     for s, d in value.items():
         for v, p in zip(d.values(), variables.values()):
             if slot_style:
