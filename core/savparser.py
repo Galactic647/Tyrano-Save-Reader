@@ -273,6 +273,7 @@ class SavParser(object):
         data = json.loads(data)
         self._keep_parsed = data
 
+        # we only enable recent if slots to check is empty
         if self.recent and not tmpl['slots-to-check'] or self._recent_overriden:
             tmpl['parsed-slot-style'] = '{slot}'
             tmpl['slots-to-check'] = [str(self._get_most_recent(data))]
@@ -289,6 +290,7 @@ class SavParser(object):
             values = json.loads(file.read())
             file.close()
 
+        # we only enable recent if slots to check is empty
         if self.recent and not tmpl['slots-to-check'] or self._recent_overriden:
             tmpl['parsed-slot-style'] = '{slot}'
             tmpl['slots-to-check'] = [str(self._get_most_recent(self._keep_parsed))]
