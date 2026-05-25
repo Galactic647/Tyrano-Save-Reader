@@ -99,6 +99,9 @@ def main(input_file: Union[str, Path], output_file: Union[str, Path],
             return
         raise ValueError(e)
 
+    if tmpl is not None and tmpl['slots-to-check'] and recent:
+        logger.warning("ignoring 'recent' because 'slots-to-check' is not empty")
+
     sp.EXCLUDED.extend(get_excluded(input_file.parent))
     sp.INCLUDED.extend(get_included(input_file.parent))
 
