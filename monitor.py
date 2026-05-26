@@ -12,6 +12,7 @@ import logging
 import glob
 import json
 import time
+import sys
 import os
 
 INTRO = """
@@ -29,6 +30,15 @@ DEFAULT_CONFIG = {
         'included': ['~']
     }    
 }
+BATCH_FILE_NAME = 'start monitor.bat'
+BATCH_CONTENT_EXE = """@echo off
+
+{executable} {arguments}
+"""
+BATCH_CONTENT_PY = """@echo off
+
+python {executable} {arguments}
+"""
 
 
 def _get_suffix(rank: int) -> str:
@@ -210,6 +220,10 @@ def initialie() -> argparse.Namespace:
                         '--recent',
                         action='store_true',
                         help='only parse the most recent save slot')
+    options.add_argument('-q',
+                        '--create-batch-file',
+                        action='store_true',
+                        help='create a batch file for quick launch')
     return argparser.parse_args()
 
 
@@ -245,6 +259,31 @@ def create_config(directory: Union[str, Path]) -> None:
         parser.write(file)
         file.close()
 
+def create_batch(game_directory: Path) -> None:
+    exec_loc = os.path.abspath(sys.argv[0])
+    
+
+    parent = game_directory.parent
+
+    if os.path.exists(f'{parent}/{BATCH_FILE_NAME}'):
+        logger.debug('Batch file already exists, overwriting...')
+
+    args = [
+        f'"{a}"' if ' ' in a else a
+        for a in sys.argv[1:]
+        if a not in ('-q', '--create-batch-file')
+    ]
+
+    content = BATCH_CONTENT_PY
+    if not exec_loc.endswith('.py'):  # either calling with 'monitor' or 'monitor.exe' in cmd
+        content = BATCH_CONTENT_EXE
+
+    if ' ' in exec_loc:
+        exec_loc = f'"{exec_loc}"'
+
+    with open(f'{parent}/{BATCH_FILE_NAME}', 'w', encoding='utf-8') as file:
+        file.write(content.format(executable=exec_loc, arguments=' '.join(args)))
+
 
 if __name__ == "__main__":
     try:
@@ -253,6 +292,11 @@ if __name__ == "__main__":
 
         logger.setLevel(getattr(logging, args.log_level.upper()))
         logger.debug(f'Running with args:\n{{args}}'.format(args='\n'.join(arguments)))
+
+        if args.create_batch_file:
+            logger.debug('Creating batch file')
+            create_batch(Path(args.input))
+
         main(args.input, args.output, args.cps, args.buffer, args.step_backup, args.backup_limit, args.template, args.no_auto_template, args.recent)
     except KeyboardInterrupt:
         logger.info('Interrupted')
