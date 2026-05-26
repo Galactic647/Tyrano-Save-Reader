@@ -1,0 +1,11 @@
+{
+    "game": "basic",
+    "game-executable": "",
+    "save-tabs": 10,
+    "save-slots-per-tab": 10,
+    "parsed-slot-style": "{tab}-{tab_slot}",
+    "slots-to-check": [],
+    "variables": {
+        "stat.f": "stat.f"
+    }
+}

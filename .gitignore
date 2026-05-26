@@ -6,11 +6,12 @@ build
 dist
 out
 resources
-templates
+templates/*
+!templates/basic.json
 *.spec
 *.ini
 .idea
 *.bat
-*.json
+/*.json
 *.ui
 *-old.*
